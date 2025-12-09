@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
@@ -7,6 +7,20 @@ interface MiniProgramViewProps {
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+
+  const handleRedeem = () => {
+    if (!couponCode.trim()) return;
+    
+    // Simulate API call and success feedback
+    // In a real app, this would validate the code
+    setTimeout(() => {
+        setShowRedeemModal(false);
+        setCouponCode('');
+        setActiveTab('MINE'); // Navigate to profile to show the "newly added ticket"
+    }, 500);
+  };
 
   return (
     <div className="flex flex-col h-full bg-white relative">
@@ -50,7 +64,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     </div>
 
                     {/* Redemption Card */}
-                    <div className="bg-gradient-to-br from-orange-400 to-red-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-orange-200">
+                    <div className="bg-gradient-to-br from-orange-400 to-red-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-orange-200 group cursor-pointer" onClick={() => setShowRedeemModal(true)}>
                          <div className="relative z-10 flex flex-col h-full justify-between items-start">
                             <div className="font-bold text-lg leading-tight">团购兑换</div>
                             <button className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-1.5 px-4 text-xs font-medium flex items-center hover:bg-white/30 transition-colors">
@@ -59,7 +73,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                             </button>
                         </div>
                          {/* Decorative background element */}
-                         <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12">
+                         <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12 group-hover:scale-110 transition-transform duration-500">
                              <Gift size={64} />
                         </div>
                     </div>
@@ -210,6 +224,87 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           <span className="text-[10px] font-bold">我的</span>
         </button>
       </div>
+
+      {/* Redemption Modal */}
+      {showRedeemModal && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setShowRedeemModal(false)} />
+          
+          <div className="relative w-full bg-gradient-to-b from-[#FFF5E6] via-white to-white rounded-[2rem] p-6 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+             
+             {/* Close Button */}
+             <button 
+                onClick={() => setShowRedeemModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-20"
+             >
+                <X size={20} />
+             </button>
+
+             {/* Decorative Stars */}
+             <Star className="absolute top-6 left-1/3 text-yellow-400 fill-yellow-400 animate-pulse" size={16} />
+             <Star className="absolute top-4 right-1/3 text-yellow-400 fill-yellow-400 animate-bounce" style={{animationDuration: '3s'}} size={20} />
+
+             {/* Title Section */}
+             <div className="text-center mt-4 mb-8 relative">
+                <h2 className="text-2xl font-black text-gray-900 italic transform -rotate-2 relative z-10" style={{ textShadow: '2px 2px 0px rgba(255,255,255,1)' }}>
+                  兑换卡券
+                </h2>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black text-orange-500/10 tracking-widest pointer-events-none select-none">
+                  COUPON
+                </div>
+             </div>
+
+             {/* Platforms */}
+             <div className="flex justify-center items-center gap-4 mb-2">
+                {/* Meituan */}
+                <div className="w-12 h-12 rounded-full bg-[#FFC300] border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
+                     <span className="font-bold text-xs text-black transform -rotate-12">美团</span>
+                </div>
+                {/* Dianping (simulated) */}
+                <div className="w-12 h-12 rounded-full bg-[#FF6600] border-2 border-white shadow-md flex items-center justify-center text-white">
+                     <User size={20} strokeWidth={2.5} />
+                </div>
+                {/* Tiktok (simulated) */}
+                <div className="w-12 h-12 rounded-full bg-black border-2 border-white shadow-md flex items-center justify-center text-white relative overflow-hidden">
+                    <Music size={20} className="relative z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/50 to-red-500/50 mix-blend-screen"></div>
+                </div>
+             </div>
+             
+             <p className="text-center text-xs text-gray-500 font-medium mb-8">团购自动验券</p>
+
+             {/* Input */}
+             <div className="bg-[#F5F5F5] rounded-xl flex items-center px-4 py-3 mb-8 border border-transparent focus-within:border-orange-200 transition-colors">
+                <input 
+                    type="text" 
+                    placeholder="请输入优惠券兑换码" 
+                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                />
+                <ScanLine className="text-gray-400" size={20} />
+             </div>
+
+             {/* Button */}
+             <button 
+                onClick={handleRedeem}
+                className="w-full bg-gradient-to-r from-[#FF8C69] to-[#FF4D4D] text-white font-bold text-lg py-3.5 rounded-full shadow-[0_8px_20px_-6px_rgba(255,87,87,0.5)] active:scale-95 transition-transform relative overflow-hidden group"
+             >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full"></div>
+                兑换
+             </button>
+
+             {/* Bottom Text */}
+             <div className="mt-8 text-center space-y-2">
+                <p className="text-xs font-bold text-gray-700">票券使用期限为30天，请尽快使用奥~</p>
+                <div className="text-[10px] text-gray-400 leading-tight px-2 scale-90">
+                     本券仅限在有效期内使用，过期作废。请在核销前出示此券。最终解释权归主办方所有。
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
