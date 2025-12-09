@@ -58,10 +58,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       }
   ]);
 
+  // Helper to get formatted date string: "10月25日"
+  const formatDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+
   // Booking Flow State
   const [bookingData, setBookingData] = useState({
       peopleCount: 1,
-      date: '10月25日', // Default
+      date: formatDate(new Date()), // Default to today
       timeSlot: '',
   });
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
@@ -136,7 +139,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
   const handleStartBooking = () => {
       setBookingStep('BASIC');
-      setBookingData({ ...bookingData, timeSlot: '', peopleCount: 1 });
+      setBookingData({ 
+        ...bookingData, 
+        date: formatDate(new Date()), // Reset to today
+        timeSlot: '', 
+        peopleCount: 1 
+      });
       setSelectedTicketIds([]);
   };
 
@@ -172,10 +180,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
       const fullTimeStr = `${bookingData.timeSlot}-${endTimeStr}`;
 
+      const year = new Date().getFullYear();
+      
       // 2. Create Session
       const newSession: SessionItem = {
           id: Date.now().toString(),
-          timeStr: `2024.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
+          timeStr: `${year}.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
           location: '北京·ClubMedJoyview延庆度假村',
           peopleCount: bookingData.peopleCount,
           status: 'UPCOMING'
@@ -186,11 +196,63 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       setBookingStep('SUCCESS');
   };
 
+  // --- Helper Generators ---
+  
+  const getNextThreeDays = () => {
+      const dates = [];
+      const today = new Date();
+      for (let i = 0; i < 3; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          dates.push(formatDate(d));
+      }
+      return dates;
+  };
+
+  const generateTimeSlots = (selectedDateStr: string) => {
+      const slots = [];
+      const now = new Date();
+      const isToday = selectedDateStr === formatDate(now);
+      
+      let startH = 10;
+      let startM = 0;
+
+      if (isToday) {
+          // If today, start from current time rounded up to next 10 mins
+          startH = now.getHours();
+          startM = Math.ceil(now.getMinutes() / 10) * 10;
+          if (startM === 60) {
+              startH += 1;
+              startM = 0;
+          }
+      }
+
+      let currentH = startH;
+      let currentM = startM;
+
+      // Only show up to 4 slots, max time 22:00
+      while (slots.length < 4) {
+          if (currentH > 22 || (currentH === 22 && currentM > 0)) break; // Cutoff at 22:00
+
+          const timeStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
+          slots.push(timeStr);
+
+          // Increment 10 mins
+          currentM += 10;
+          if (currentM === 60) {
+              currentH += 1;
+              currentM = 0;
+          }
+      }
+
+      return slots;
+  };
+
   // --- Render Helpers ---
 
   const renderBookingBasic = () => {
-      const timeSlots = ['10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
-      const dates = ['10月25日', '10月26日', '10月27日', '10月28日', '10月29日'];
+      const dates = getNextThreeDays();
+      const timeSlots = generateTimeSlots(bookingData.date);
 
       return (
           <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
@@ -236,41 +298,59 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">选择日期</h3>
                       <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
-                          {dates.map(date => (
-                              <button
-                                  key={date}
-                                  onClick={() => setBookingData({...bookingData, date: date})}
-                                  className={`flex-shrink-0 w-24 h-20 rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all
-                                      ${bookingData.date === date 
-                                          ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
-                                          : 'border-gray-100 bg-white text-gray-600'
-                                      }`}
-                              >
-                                  <span className="text-xs opacity-80">{date === '10月25日' ? '今天' : '周' + '一二三四五六日'[Math.floor(Math.random()*7)]}</span>
-                                  <span className="font-bold text-lg">{date.split('月')[1]}</span>
-                              </button>
-                          ))}
+                          {dates.map(date => {
+                              const isToday = date === formatDate(new Date());
+                              // Simple week day calculation for demo
+                              const dayIndex = (new Date().getDay() + dates.indexOf(date)) % 7;
+                              const weekDays = ['日','一','二','三','四','五','六'];
+
+                              return (
+                                <button
+                                    key={date}
+                                    onClick={() => setBookingData({...bookingData, date: date, timeSlot: ''})} // Reset time slot on date change
+                                    className={`flex-shrink-0 w-24 h-20 rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all
+                                        ${bookingData.date === date 
+                                            ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                                            : 'border-gray-100 bg-white text-gray-600'
+                                        }`}
+                                >
+                                    <span className={`text-xs ${bookingData.date === date ? 'text-blue-100' : 'text-gray-400'}`}>
+                                        {isToday ? '今天' : '周' + weekDays[dayIndex]}
+                                    </span>
+                                    <span className="font-bold text-lg">{date}</span>
+                                </button>
+                              );
+                          })}
                       </div>
                   </div>
 
                   {/* Time Slots */}
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">选择场次</h3>
-                      <div className="grid grid-cols-4 gap-3">
-                          {timeSlots.map(time => (
-                              <button
-                                  key={time}
-                                  onClick={() => setBookingData({...bookingData, timeSlot: time})}
-                                  className={`py-2 rounded-lg text-sm font-medium transition-all border
-                                      ${bookingData.timeSlot === time 
-                                          ? 'border-blue-500 bg-blue-50 text-blue-600' 
-                                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                                      }`}
-                              >
-                                  {time}
-                              </button>
-                          ))}
-                      </div>
+                      {timeSlots.length > 0 ? (
+                          <div className="grid grid-cols-4 gap-3">
+                              {timeSlots.map(time => (
+                                  <button
+                                      key={time}
+                                      onClick={() => setBookingData({...bookingData, timeSlot: time})}
+                                      className={`py-2 rounded-lg text-sm font-medium transition-all border
+                                          ${bookingData.timeSlot === time 
+                                              ? 'border-blue-500 bg-blue-50 text-blue-600' 
+                                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                          }`}
+                                  >
+                                      {time}
+                                  </button>
+                              ))}
+                          </div>
+                      ) : (
+                           <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-400 text-sm border border-dashed border-gray-200">
+                               当前日期暂无可用场次
+                           </div>
+                      )}
+                      <p className="text-[10px] text-gray-400 mt-2 ml-1">
+                          * 场次每10分钟一场，最晚22:00
+                      </p>
                   </div>
               </div>
 
@@ -296,6 +376,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       const totalCapacity = selectedTickets.reduce((sum, t) => sum + t.peopleCount, 0);
       const missingPeople = Math.max(0, bookingData.peopleCount - totalCapacity);
       const amountToPay = missingPeople * 98;
+      
+      const year = new Date().getFullYear();
 
       return (
           <div className="flex flex-col h-full bg-gray-50 animate-in slide-in-from-right duration-300">
@@ -312,7 +394,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-blue-100">
                       <div className="flex justify-between items-center mb-2">
                           <span className="text-gray-500 text-sm">预约时间</span>
-                          <span className="font-bold text-gray-800">2024.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
+                          <span className="font-bold text-gray-800">{year}.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-gray-500 text-sm">预约人数</span>
@@ -395,6 +477,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   };
 
   const renderBookingSuccess = () => {
+      const year = new Date().getFullYear();
       return (
           <div className="flex flex-col items-center justify-center h-full bg-white p-6 animate-in zoom-in-95 duration-300">
               <div className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6 shadow-sm">
@@ -411,7 +494,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                        </div>
                        <div className="flex justify-between">
                            <span className="text-gray-400 text-sm">预约时间</span>
-                           <span className="font-bold text-gray-800">2024.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
+                           <span className="font-bold text-gray-800">{year}.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
                        </div>
                        <div className="flex justify-between">
                            <span className="text-gray-400 text-sm">预约人数</span>
