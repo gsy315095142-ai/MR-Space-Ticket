@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays } from 'lucide-react';
 
 interface MiniProgramViewProps {
@@ -65,6 +65,37 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       timeSlot: '',
   });
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
+  
+  // Force re-render every minute to update status
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // --- Helper: Check Session Status ---
+  const getSessionStatus = (timeStr: string): 'UPCOMING' | 'COMPLETED' => {
+    try {
+        // Expected format: "YYYY.MM.DD HH:mm-HH:mm"
+        // Example: "2025.06.17 15:00-15:30"
+        const [datePart, timeRange] = timeStr.split(' ');
+        if (!datePart || !timeRange) return 'UPCOMING';
+        
+        const normalizedDate = datePart.replace(/\./g, '-'); // 2025-06-17
+        const endTimeStr = timeRange.split('-')[1]; // 15:30
+        
+        if (!endTimeStr) return 'UPCOMING';
+
+        const endDateTimeStr = `${normalizedDate}T${endTimeStr}:00`;
+        const endDate = new Date(endDateTimeStr);
+        
+        if (isNaN(endDate.getTime())) return 'UPCOMING';
+
+        return new Date() > endDate ? 'COMPLETED' : 'UPCOMING';
+    } catch (e) {
+        return 'UPCOMING';
+    }
+  };
 
   // --- Handlers ---
 
@@ -134,10 +165,17 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       );
       setMyTickets(updatedTickets);
 
+      // Calculate End Time (Start Time + 30 mins)
+      const [sh, sm] = bookingData.timeSlot.split(':').map(Number);
+      const endDate = new Date();
+      endDate.setHours(sh, sm + 30);
+      const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+      const fullTimeStr = `${bookingData.timeSlot}-${endTimeStr}`;
+
       // 2. Create Session
       const newSession: SessionItem = {
           id: Date.now().toString(),
-          timeStr: `2024.${bookingData.date.replace('月','.').replace('日','')} ${bookingData.timeSlot}`, // Simplified date parsing
+          timeStr: `2024.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
           location: '北京·ClubMedJoyview延庆度假村',
           peopleCount: bookingData.peopleCount,
           status: 'UPCOMING'
@@ -426,14 +464,16 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                         <p>暂无预约场次</p>
                     </div>
                 ) : (
-                    mySessions.map(session => (
+                    mySessions.map(session => {
+                        const status = getSessionStatus(session.timeStr);
+                        return (
                         <div key={session.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                             {/* Header Status */}
                             <div className={`px-4 py-2 flex justify-between items-center text-xs font-bold
-                                ${session.status === 'UPCOMING' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}
+                                ${status === 'UPCOMING' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}
                             `}>
-                                <span>{session.status === 'UPCOMING' ? '待参加' : '已结束'}</span>
-                                {session.status === 'UPCOMING' && <span className="flex items-center gap-1"><Clock size={12}/> 请提前签到</span>}
+                                <span>{status === 'UPCOMING' ? '待参加' : '已结束'}</span>
+                                {status === 'UPCOMING' && <span className="flex items-center gap-1"><Clock size={12}/> 请提前签到</span>}
                             </div>
                             
                             <div className="p-4 flex gap-4">
@@ -454,7 +494,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                 </div>
                             </div>
                             
-                            {session.status === 'UPCOMING' && (
+                            {status === 'UPCOMING' && (
                                 <div className="px-4 pb-4 flex justify-end gap-2">
                                     <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50">
                                         取消预约
@@ -465,7 +505,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                 </div>
                             )}
                         </div>
-                    ))
+                    )})
                 )}
             </div>
         </div>
@@ -719,27 +759,32 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 </div>
 
                 {/* Recent Reservation Section */}
-                <div className="px-4 mt-6">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Clock className="text-blue-500" size={18} />
-                        <h3 className="font-bold text-gray-800 text-lg">最近预约的场次</h3>
-                    </div>
+                {(() => {
+                    // Filter for upcoming sessions logic
+                    const upcomingSessions = mySessions.filter(s => getSessionStatus(s.timeStr) === 'UPCOMING');
+                    const latestSession = upcomingSessions[0]; // Assuming ordered by newest
+                    
+                    if (latestSession) {
+                        return (
+                        <div className="px-4 mt-6 animate-in slide-in-from-bottom duration-500">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Clock className="text-blue-500" size={18} />
+                                <h3 className="font-bold text-gray-800 text-lg">最近预约的场次</h3>
+                            </div>
 
-                    <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 relative">
-                        {mySessions.length > 0 ? (
-                            <>
+                            <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 relative">
                                 <div className="space-y-3 mb-4">
                                     <div className="flex text-sm">
                                         <span className="text-gray-400 w-20 shrink-0">场次时间:</span>
-                                        <span className="font-medium text-gray-800">{mySessions[0].timeStr}</span>
+                                        <span className="font-medium text-gray-800">{latestSession.timeStr}</span>
                                     </div>
                                     <div className="flex text-sm">
                                         <span className="text-gray-400 w-20 shrink-0">场次地点:</span>
-                                        <span className="font-medium text-gray-800">{mySessions[0].location}</span>
+                                        <span className="font-medium text-gray-800">{latestSession.location}</span>
                                     </div>
                                     <div className="flex text-sm">
                                         <span className="text-gray-400 w-20 shrink-0">预约人数:</span>
-                                        <span className="font-medium text-gray-800">{mySessions[0].peopleCount}人</span>
+                                        <span className="font-medium text-gray-800">{latestSession.peopleCount}人</span>
                                     </div>
                                 </div>
                                 <div className="flex justify-end">
@@ -750,15 +795,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                         查看详情
                                     </button>
                                 </div>
-                            </>
-                        ) : (
-                             <div className="text-center py-6 text-gray-400 text-sm">
-                                 暂无预约记录
-                             </div>
-                        )}
-                        
-                    </div>
-                </div>
+                            </div>
+                        </div>
+                        );
+                    }
+                    return null;
+                })()}
 
                 {/* Extra Content */}
                 <div className="px-4 mt-6 mb-4">

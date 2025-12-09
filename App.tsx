@@ -9,8 +9,8 @@ import { Smartphone, MessageSquare, Monitor, LayoutGrid } from 'lucide-react';
 const NAV_ITEMS: NavItem[] = [
   { id: ViewType.STAFF_FRONT_STORE, label: '工作人员-前店小程序', icon: 'smartphone' },
   { id: ViewType.STAFF_BACKSTAGE, label: '工作人员-后厅APP', icon: 'monitor' },
-  { id: ViewType.GUEST_CHAT, label: '客人-聊天页', icon: 'message-square' },
-  { id: ViewType.GUEST_MINI_PROGRAM, label: '客人-小程序', icon: 'layout-grid' },
+  { id: ViewType.GUEST_CHAT, label: '用户-聊天页', icon: 'message-square' },
+  { id: ViewType.GUEST_MINI_PROGRAM, label: '用户-小程序', icon: 'layout-grid' },
 ];
 
 const App: React.FC = () => {
