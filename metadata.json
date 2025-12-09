@@ -1,0 +1,5 @@
+{
+  "name": "VR Space Ticket Platform",
+  "description": "A simulation platform for VR space ticketing, demonstrating staff and guest interfaces.",
+  "requestFramePermissions": []
+}

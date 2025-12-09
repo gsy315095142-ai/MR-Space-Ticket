@@ -1,0 +1,217 @@
+import React, { useState } from 'react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock } from 'lucide-react';
+
+interface MiniProgramViewProps {
+  userType: 'STAFF' | 'GUEST';
+}
+
+const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
+  const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
+
+  return (
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
+        {activeTab === 'HOME' ? (
+          <div className="flex flex-col">
+            {/* Header Image with Location Overlay */}
+            <div className="relative h-64 w-full bg-gray-200">
+              <img 
+                src="https://images.unsplash.com/photo-1596701062351-8c2c14d1fdd0?q=80&w=800&auto=format&fit=crop" 
+                alt="VR Space Front Desk" 
+                className="w-full h-full object-cover"
+              />
+              {/* Location Pill */}
+              <div className="absolute top-10 left-4 z-10">
+                 <div className="bg-white/95 backdrop-blur-sm pl-3 pr-4 py-2 rounded-full flex items-center gap-1 shadow-sm border border-gray-100">
+                    <MapPin size={16} className="text-blue-500 fill-blue-500" />
+                    <span className="text-sm font-bold text-gray-800 truncate max-w-[200px]">北京·ClubMedJoyview延庆度假村</span>
+                    <span className="text-gray-400 text-[10px] ml-1">▼</span>
+                 </div>
+              </div>
+            </div>
+
+            {/* Main Action Cards (Overlapping) */}
+            <div className="px-4 -mt-10 relative z-10">
+              <div className="bg-white rounded-2xl shadow-xl p-4 border border-white">
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Booking Card */}
+                    <div className="bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-blue-200">
+                        <div className="relative z-10 flex flex-col h-full justify-between items-start">
+                            <div className="font-bold text-lg leading-tight">预约体验</div>
+                            <button className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-1.5 px-4 text-xs font-medium flex items-center hover:bg-white/30 transition-colors">
+                                <Clock size={12} className="mr-1.5" /> 
+                                预定
+                            </button>
+                        </div>
+                        {/* Decorative background element */}
+                        <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12">
+                             <img src="https://cdn-icons-png.flaticon.com/512/2855/2855260.png" alt="VR" className="w-20 h-20 invert" />
+                        </div>
+                    </div>
+
+                    {/* Redemption Card */}
+                    <div className="bg-gradient-to-br from-orange-400 to-red-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-orange-200">
+                         <div className="relative z-10 flex flex-col h-full justify-between items-start">
+                            <div className="font-bold text-lg leading-tight">团购兑换</div>
+                            <button className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-1.5 px-4 text-xs font-medium flex items-center hover:bg-white/30 transition-colors">
+                                <Ticket size={12} className="mr-1.5" /> 
+                                兑换
+                            </button>
+                        </div>
+                         {/* Decorative background element */}
+                         <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12">
+                             <Gift size={64} />
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Reservation Section */}
+            <div className="px-4 mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                    <Clock className="text-blue-500" size={18} />
+                    <h3 className="font-bold text-gray-800 text-lg">最近预约的场次</h3>
+                </div>
+
+                <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 relative">
+                    <div className="space-y-3 mb-4">
+                        <div className="flex text-sm">
+                            <span className="text-gray-400 w-20 shrink-0">场次时间:</span>
+                            <span className="font-medium text-gray-800">2025.06.17 15:00-15:30</span>
+                        </div>
+                        <div className="flex text-sm">
+                            <span className="text-gray-400 w-20 shrink-0">场次地点:</span>
+                            <span className="font-medium text-gray-800">北京·ClubMedJoyview延庆度假村</span>
+                        </div>
+                        <div className="flex text-sm">
+                            <span className="text-gray-400 w-20 shrink-0">预约人数:</span>
+                            <span className="font-medium text-gray-800">3人</span>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors">
+                            查看详情
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+             {/* Extra Content to make it scrollable/look complete */}
+             <div className="px-4 mt-6 mb-4">
+                 <div className="flex justify-between items-center mb-3">
+                     <h3 className="font-bold text-gray-800 text-lg">热门活动</h3>
+                     <span className="text-gray-400 text-xs">查看更多 &gt;</span>
+                 </div>
+                 <div className="bg-white border rounded-xl p-3 flex gap-3 shadow-sm">
+                     <img src="https://picsum.photos/100/100?random=10" className="w-20 h-20 rounded-lg object-cover bg-gray-200" alt="Activity" />
+                     <div className="flex-1 flex flex-col justify-between py-1">
+                         <div className="font-bold text-gray-800 text-sm">周末特惠双人行</div>
+                         <div className="text-xs text-gray-500">限时折扣，体验火星救援副本</div>
+                         <div className="flex gap-2 mt-1">
+                             <span className="px-2 py-0.5 bg-red-100 text-red-500 text-[10px] rounded">热门</span>
+                             <span className="px-2 py-0.5 bg-orange-100 text-orange-500 text-[10px] rounded">特惠</span>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+          </div>
+        ) : (
+          <div className="flex flex-col bg-gray-50 min-h-full">
+            {/* User Header */}
+            <div className="bg-blue-600 pt-8 pb-16 px-6 text-white rounded-b-[2.5rem] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+              <div className="relative z-10 flex items-center gap-4 mt-4">
+                <div className="w-16 h-16 bg-white rounded-full border-4 border-white/20 flex items-center justify-center text-3xl shadow-lg">
+                   {userType === 'STAFF' ? '👩‍💼' : '👨‍🚀'}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">{userType === 'STAFF' ? '工作人员' : '体验官 User'}</h2>
+                  <p className="text-blue-100 text-xs mt-1 opacity-80">ID: 8839201</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="px-4 -mt-8 relative z-10">
+              <div className="bg-white rounded-xl shadow-lg shadow-blue-900/5 overflow-hidden mb-4">
+                <div className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <Calendar size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的场次</span>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
+                </div>
+                <div className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                      <Ticket size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的票券</span>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
+                </div>
+                <div className="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-colors">
+                      <Gift size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的优惠券</span>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
+                </div>
+              </div>
+              
+              {userType === 'STAFF' && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 mt-4">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">Staff Tools</h3>
+                       <div className="grid grid-cols-4 gap-4">
+                           <div className="flex flex-col items-center gap-1">
+                               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                   <ScanLine size={18} className="text-gray-600" />
+                               </div>
+                               <span className="text-[10px] text-gray-600">核销</span>
+                           </div>
+                       </div>
+                  </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Custom Bottom Tab Bar */}
+      <div className="absolute bottom-0 w-full h-20 bg-white border-t border-gray-100 flex justify-between items-end px-12 pb-2 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
+        <button 
+          onClick={() => setActiveTab('HOME')}
+          className={`flex flex-col items-center gap-1 mb-2 ${activeTab === 'HOME' ? 'text-blue-500' : 'text-gray-400'}`}
+        >
+          <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} className="transition-all" />
+          <span className="text-[10px] font-bold">首页</span>
+        </button>
+
+        {/* Center Floating Button */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 -top-6 cursor-pointer group">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-lg shadow-blue-300 flex flex-col items-center justify-center text-white border-4 border-white group-hover:scale-105 transition-transform">
+                <ScanLine size={24} />
+                <span className="text-[9px] font-bold mt-0.5">现场签到</span>
+            </div>
+        </div>
+
+        <button 
+          onClick={() => setActiveTab('MINE')}
+          className={`flex flex-col items-center gap-1 mb-2 ${activeTab === 'MINE' ? 'text-blue-500' : 'text-gray-400'}`}
+        >
+          <User size={24} strokeWidth={activeTab === 'MINE' ? 2.5 : 2} className="transition-all" />
+          <span className="text-[10px] font-bold">我的</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default MiniProgramView;
