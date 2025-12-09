@@ -1,25 +1,234 @@
 import React, { useState } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
+}
+
+interface TicketItem {
+  id: string;
+  name: string;
+  peopleCount: number;
+  storeName: string;
+  validUntil: string;
+  status: 'UNUSED' | 'USED' | 'EXPIRED';
 }
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [couponCode, setCouponCode] = useState('');
+  
+  // New state for sub-navigation in Mine tab
+  const [mineView, setMineView] = useState<'MENU' | 'TICKETS'>('MENU');
+
+  // Initial dummy data for tickets
+  const [myTickets, setMyTickets] = useState<TicketItem[]>([
+    {
+      id: 'init-1',
+      name: '单人体验券',
+      peopleCount: 1,
+      storeName: '北京·ClubMedJoyview延庆度假村',
+      validUntil: '2024-12-31',
+      status: 'EXPIRED'
+    }
+  ]);
 
   const handleRedeem = () => {
-    if (!couponCode.trim()) return;
+    const code = couponCode.trim();
+    if (!code) return;
+    
+    // Determine ticket type based on first digit
+    let ticketConfig = { name: '单人体验券', count: 1 };
+    if (code.startsWith('2')) ticketConfig = { name: '双人体验券', count: 2 };
+    else if (code.startsWith('3')) ticketConfig = { name: '三人体验券', count: 3 };
+    else if (code.startsWith('4')) ticketConfig = { name: '四人体验券', count: 4 };
+    else if (code.startsWith('1')) ticketConfig = { name: '单人体验券', count: 1 };
+    
+    // Calculate validity (30 days from now)
+    const validDate = new Date();
+    validDate.setDate(validDate.getDate() + 30);
+    const validUntilStr = validDate.toLocaleDateString('zh-CN').replace(/\//g, '.');
+
+    const newTicket: TicketItem = {
+        id: Date.now().toString(),
+        name: ticketConfig.name,
+        peopleCount: ticketConfig.count,
+        storeName: '北京·ClubMedJoyview延庆度假村',
+        validUntil: validUntilStr,
+        status: 'UNUSED'
+    };
     
     // Simulate API call and success feedback
-    // In a real app, this would validate the code
     setTimeout(() => {
+        setMyTickets([newTicket, ...myTickets]);
         setShowRedeemModal(false);
         setCouponCode('');
-        setActiveTab('MINE'); // Navigate to profile to show the "newly added ticket"
+        setActiveTab('MINE'); // Navigate to profile
+        setMineView('TICKETS'); // Go directly to tickets list
     }, 500);
+  };
+
+  const renderMineContent = () => {
+    if (mineView === 'TICKETS') {
+        return (
+            <div className="flex flex-col h-full bg-gray-50">
+                {/* Navbar */}
+                <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-20">
+                    <button onClick={() => setMineView('MENU')} className="p-1 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h2 className="font-bold text-lg text-gray-800">我的票券</h2>
+                </div>
+
+                {/* Ticket List */}
+                <div className="p-4 space-y-4 pb-24">
+                    {myTickets.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center pt-20 text-gray-400">
+                            <Ticket size={48} className="mb-2 opacity-20" />
+                            <p>暂无可用票券</p>
+                        </div>
+                    ) : (
+                        myTickets.map(ticket => (
+                            <div key={ticket.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 relative group">
+                                {/* Left Color Bar */}
+                                <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ticket.status === 'UNUSED' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
+                                
+                                <div className="p-4 pl-6 flex justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className={`font-bold text-lg ${ticket.status === 'UNUSED' ? 'text-gray-800' : 'text-gray-400'}`}>
+                                                {ticket.name}
+                                            </h3>
+                                            {ticket.status === 'UNUSED' && (
+                                                <span className="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded border border-orange-200">
+                                                    未使用
+                                                </span>
+                                            )}
+                                            {ticket.status === 'EXPIRED' && (
+                                                <span className="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded">
+                                                    已过期
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-500 space-y-1 mt-2">
+                                            <div className="flex items-center gap-1">
+                                                <User size={12} />
+                                                <span>适用人数：{ticket.peopleCount}人</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <MapPin size={12} />
+                                                <span className="truncate max-w-[180px]">{ticket.storeName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock size={12} />
+                                                <span>有效期至：{ticket.validUntil}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Right Action Area */}
+                                    <div className="flex flex-col items-center justify-center border-l border-dashed border-gray-200 pl-4 ml-2 gap-2">
+                                        {ticket.status === 'UNUSED' ? (
+                                            <>
+                                                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center">
+                                                    <ScanLine size={24} />
+                                                </div>
+                                                <span className="text-[10px] font-medium text-gray-500">去核销</span>
+                                            </>
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center transform -rotate-12 opacity-50">
+                                                <span className="font-bold text-xs text-gray-400">INACTIVE</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Decorative Circles for ticket cutout effect */}
+                                <div className="absolute -top-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
+                                <div className="absolute -bottom-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // Default Menu View
+    return (
+        <div className="flex flex-col bg-gray-50 min-h-full">
+            {/* User Header */}
+            <div className="bg-blue-600 pt-8 pb-16 px-6 text-white rounded-b-[2.5rem] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+              <div className="relative z-10 flex items-center gap-4 mt-4">
+                <div className="w-16 h-16 bg-white rounded-full border-4 border-white/20 flex items-center justify-center text-3xl shadow-lg">
+                   {userType === 'STAFF' ? '👩‍💼' : '👨‍🚀'}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">{userType === 'STAFF' ? '工作人员' : '体验官 User'}</h2>
+                  <p className="text-blue-100 text-xs mt-1 opacity-80">ID: 8839201</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <div className="px-4 -mt-8 relative z-10">
+              <div className="bg-white rounded-xl shadow-lg shadow-blue-900/5 overflow-hidden mb-4">
+                <div className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <Calendar size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的场次</span>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
+                </div>
+                <div 
+                    onClick={() => setMineView('TICKETS')}
+                    className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                      <Ticket size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的票券</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {myTickets.filter(t => t.status === 'UNUSED').length > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] px-1.5 rounded-full">
+                            {myTickets.filter(t => t.status === 'UNUSED').length}
+                        </span>
+                    )}
+                    <ChevronRight size={18} className="text-gray-300" />
+                  </div>
+                </div>
+                <div className="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-colors">
+                      <Gift size={20} />
+                    </div>
+                    <span className="font-bold text-gray-800">我的优惠券</span>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-300" />
+                </div>
+              </div>
+              
+              {userType === 'STAFF' && (
+                  <div className="bg-white rounded-xl shadow-sm p-4 mt-4">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">Staff Tools</h3>
+                       <div className="grid grid-cols-4 gap-4">
+                           <div className="flex flex-col items-center gap-1">
+                               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                   <ScanLine size={18} className="text-gray-600" />
+                               </div>
+                               <span className="text-[10px] text-gray-600">核销</span>
+                           </div>
+                       </div>
+                  </div>
+              )}
+            </div>
+        </div>
+    );
   };
 
   return (
@@ -133,75 +342,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
           </div>
         ) : (
-          <div className="flex flex-col bg-gray-50 min-h-full">
-            {/* User Header */}
-            <div className="bg-blue-600 pt-8 pb-16 px-6 text-white rounded-b-[2.5rem] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-              <div className="relative z-10 flex items-center gap-4 mt-4">
-                <div className="w-16 h-16 bg-white rounded-full border-4 border-white/20 flex items-center justify-center text-3xl shadow-lg">
-                   {userType === 'STAFF' ? '👩‍💼' : '👨‍🚀'}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{userType === 'STAFF' ? '工作人员' : '体验官 User'}</h2>
-                  <p className="text-blue-100 text-xs mt-1 opacity-80">ID: 8839201</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Menu Items */}
-            <div className="px-4 -mt-8 relative z-10">
-              <div className="bg-white rounded-xl shadow-lg shadow-blue-900/5 overflow-hidden mb-4">
-                <div className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <Calendar size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的场次</span>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-                <div className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                      <Ticket size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的票券</span>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-                <div className="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-colors">
-                      <Gift size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的优惠券</span>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-              </div>
-              
-              {userType === 'STAFF' && (
-                  <div className="bg-white rounded-xl shadow-sm p-4 mt-4">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">Staff Tools</h3>
-                       <div className="grid grid-cols-4 gap-4">
-                           <div className="flex flex-col items-center gap-1">
-                               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                   <ScanLine size={18} className="text-gray-600" />
-                               </div>
-                               <span className="text-[10px] text-gray-600">核销</span>
-                           </div>
-                       </div>
-                  </div>
-              )}
-            </div>
-          </div>
+          renderMineContent()
         )}
       </div>
 
       {/* Custom Bottom Tab Bar */}
       <div className="absolute bottom-0 w-full h-20 bg-white border-t border-gray-100 flex justify-between items-end px-12 pb-2 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
         <button 
-          onClick={() => setActiveTab('HOME')}
+          onClick={() => { setActiveTab('HOME'); setMineView('MENU'); }}
           className={`flex flex-col items-center gap-1 mb-2 ${activeTab === 'HOME' ? 'text-blue-500' : 'text-gray-400'}`}
         >
           <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} className="transition-all" />
