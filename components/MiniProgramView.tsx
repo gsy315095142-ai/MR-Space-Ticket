@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
@@ -1150,87 +1150,107 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
   const renderAdminData = () => {
       return (
-          <div className="flex flex-col h-full bg-gray-50 p-4 pb-20 overflow-y-auto">
-              {/* Filter Bar */}
-              <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 mb-4 sticky top-0 z-10">
-                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between text-sm cursor-pointer">
-                      <div className="flex items-center gap-2 text-gray-600">
-                          <Calendar size={14} />
-                          <span>{adminDateFilter}</span>
-                      </div>
-                      <ChevronRight size={14} className="rotate-90 text-gray-400" />
-                  </div>
-                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between text-sm cursor-pointer">
-                      <div className="flex items-center gap-2 text-gray-600">
-                           <MapPin size={14} />
-                           <span className="truncate">延庆店</span>
-                      </div>
-                      <ChevronRight size={14} className="rotate-90 text-gray-400" />
-                  </div>
+          <div className="flex flex-col h-full bg-gray-100">
+              {/* Custom Header for Data Page */}
+              <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-20">
+                  <div className="w-8"></div> {/* Spacer to center title if needed, or just justify-between */}
+                  <h2 className="text-lg font-bold text-gray-800">数据统计</h2>
+                  <button className="flex flex-col items-center text-gray-500">
+                      <Share size={18} />
+                      <span className="text-[10px]">导出</span>
+                  </button>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg shadow-blue-200">
-                      <div className="text-blue-100 text-xs mb-1">今日营收</div>
-                      <div className="text-2xl font-bold">¥12,890</div>
-                      <div className="text-blue-200 text-[10px] mt-1 flex items-center gap-1">
-                          <span className="bg-white/20 px-1 rounded">+12%</span> 较昨日
-                      </div>
-                  </div>
-                  <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                      <div className="text-gray-500 text-xs mb-1">接待人数</div>
-                      <div className="text-2xl font-bold text-gray-800">128 <span className="text-sm font-normal text-gray-400">人</span></div>
-                      <div className="text-green-500 text-[10px] mt-1">
-                          满载率 85%
-                      </div>
-                  </div>
-              </div>
-
-              {/* Chart 1 */}
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
-                          <BarChart size={16} className="text-purple-500" />
-                          时段客流统计
-                      </h3>
-                  </div>
-                  <div className="h-32 flex items-end justify-between px-2 gap-2">
-                      {[30, 45, 70, 100, 60, 40, 20].map((h, i) => (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                              <div className="w-full bg-purple-100 rounded-t-sm relative h-full flex items-end overflow-hidden group-hover:bg-purple-200 transition-colors">
-                                  <div className="w-full bg-purple-500 rounded-t-sm transition-all duration-500" style={{height: `${h}%`}}></div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+                  {/* Filter Card */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <div className="mb-4">
+                          <label className="text-sm font-bold text-gray-700 block mb-2">查询日期:</label>
+                          <div className="flex items-center gap-2 mb-3">
+                              <div className="bg-gray-50 flex-1 py-2 px-3 rounded-lg text-sm text-gray-600 flex justify-between items-center border border-gray-100">
+                                  <span>2025-12-22</span> 
+                                  <Calendar size={14} className="text-blue-300"/>
                               </div>
-                              <span className="text-[9px] text-gray-400">{10+i}:00</span>
+                              <span className="text-gray-400 font-medium">至</span>
+                              <div className="bg-gray-50 flex-1 py-2 px-3 rounded-lg text-sm text-gray-400 flex justify-between items-center border border-gray-100">
+                                  <span>请选择日期</span> 
+                                  <Calendar size={14} className="text-blue-300"/>
+                              </div>
                           </div>
-                      ))}
-                  </div>
-              </div>
-
-               {/* Chart 2 */}
-               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-                  <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
-                          <PieChart size={16} className="text-orange-500" />
-                          票券类型占比
-                      </h3>
-                  </div>
-                  <div className="flex items-center gap-4">
-                      <div className="w-24 h-24 rounded-full border-[12px] border-orange-500 border-r-blue-500 border-b-green-500 rotate-45"></div>
-                      <div className="space-y-2 flex-1">
-                          <div className="flex justify-between text-xs">
-                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>双人票</span>
-                              <span className="font-bold">45%</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>单人票</span>
-                              <span className="font-bold">30%</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>家庭票</span>
-                              <span className="font-bold">25%</span>
+                          <div className="flex justify-between gap-2">
+                               {['昨天', '今天', '上个月', '本月'].map((label, idx) => (
+                                   <button key={label} className={`flex-1 py-1.5 rounded-full text-xs transition-colors border ${idx===1 ? 'bg-blue-500 text-white border-blue-500 shadow-sm shadow-blue-200' : 'bg-white text-blue-400 border-blue-200 hover:bg-blue-50'}`}>
+                                       {label}
+                                   </button>
+                               ))}
                           </div>
                       </div>
+                      <div>
+                          <label className="text-sm font-bold text-gray-700 block mb-2">查询酒店:</label>
+                          <div className="bg-gray-50 w-full py-2 px-3 rounded-lg text-sm text-gray-600 flex justify-between items-center border border-gray-100">
+                              <span>全部</span> 
+                              <ChevronDown size={16} className="text-blue-400"/>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm">
+                       <div className="flex items-center gap-2 mb-4">
+                           <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                           <h3 className="font-bold text-gray-800 text-base">汇总统计</h3>
+                       </div>
+                       
+                       <div className="bg-blue-50 rounded-lg p-4 mb-3 border border-blue-100">
+                           <div className="text-center text-gray-500 text-xs mb-1 font-medium">总订场票券</div>
+                           <div className="flex justify-center items-baseline gap-6 mt-1">
+                               <div className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 张</div>
+                               <div className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 人</div>
+                           </div>
+                       </div>
+
+                       <div className="grid grid-cols-2 gap-3">
+                           <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                               <div className="text-xl font-bold text-blue-600 mb-1 font-mono">12 <span className="text-xs text-gray-500 font-normal font-sans">张</span></div>
+                               <div className="text-xs text-gray-400 font-medium">退票票券</div>
+                           </div>
+                           <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                               <div className="text-xl font-bold text-blue-600 mb-1 font-mono">13 <span className="text-xs text-gray-500 font-normal font-sans">张</span></div>
+                               <div className="text-xs text-gray-400 font-medium">过期票券</div>
+                           </div>
+                       </div>
+                  </div>
+
+                  {/* Hotel Ticket Stats */}
+                   <div className="bg-white rounded-xl p-4 shadow-sm">
+                       <div className="flex items-center gap-2 mb-4">
+                           <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                           <h3 className="font-bold text-gray-800 text-base">酒店票券统计</h3>
+                       </div>
+                       
+                       <div className="bg-blue-50 rounded-lg p-4 mb-3 border border-blue-100">
+                           <div className="text-center text-gray-500 text-xs mb-1 font-medium">酒店订场票券</div>
+                           <div className="flex justify-center items-baseline gap-6 mt-1">
+                               <div className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 张</div>
+                               <div className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 人</div>
+                           </div>
+                       </div>
+
+                       <div className="grid grid-cols-3 gap-3">
+                           {[
+                               {label: '领取票券', val: '12'},
+                               {label: '领券未订场', val: '13'},
+                               {label: '退票票券', val: '35'},
+                               {label: '过期票券', val: '460'},
+                               {label: '二维码生成', val: '781'},
+                               {label: '二维码失效', val: '7'},
+                           ].map((item, i) => (
+                               <div key={i} className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col justify-between h-20">
+                                   <div className="text-lg font-bold text-blue-600 font-mono leading-none">{item.val} <span className="text-[10px] text-gray-400 font-normal font-sans">张</span></div>
+                                   <div className="text-[10px] text-gray-500 font-medium">{item.label}</div>
+                               </div>
+                           ))}
+                       </div>
                   </div>
               </div>
           </div>
@@ -1288,13 +1308,15 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const renderAdminView = () => {
       return (
           <div className="flex flex-col h-full bg-white relative">
-              {/* Top Bar for Admin */}
-              <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm border-b border-gray-100 sticky top-0 z-20">
-                  <div className="font-black text-lg text-purple-700 italic">ADMIN</div>
-                  <div className="text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-500">
-                      工作人员端
+              {/* Top Bar for Admin - Hide on Data Tab to use custom header */}
+              {adminTab !== 'DATA' && (
+                  <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm border-b border-gray-100 sticky top-0 z-20">
+                      <div className="font-black text-lg text-purple-700 italic">ADMIN</div>
+                      <div className="text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-500">
+                          工作人员端
+                      </div>
                   </div>
-              </div>
+              )}
               
               <div className="flex-1 overflow-hidden relative">
                   {adminTab === 'TICKETS' && renderAdminTickets()}
