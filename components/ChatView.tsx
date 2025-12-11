@@ -65,6 +65,9 @@ const ChatView: React.FC = () => {
       
       // 5. Notify MiniProgram
       window.dispatchEvent(new Event('storage_update'));
+
+      // 6. Notify App for badge
+      window.dispatchEvent(new Event('new_user_ticket'));
       
       alert('领取成功！请前往“用户-小程序 -> 我的 -> 我的票券”查看');
   };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewType, NavItem } from './types';
 import MobileFrame from './components/MobileFrame';
 import MiniProgramView from './components/MiniProgramView';
@@ -15,6 +15,35 @@ const NAV_ITEMS: NavItem[] = [
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>(ViewType.STAFF_FRONT_STORE);
+  const [badges, setBadges] = useState<Record<string, boolean>>({
+    [ViewType.GUEST_CHAT]: false,
+    [ViewType.GUEST_MINI_PROGRAM]: false
+  });
+
+  useEffect(() => {
+      const handleNewMsg = () => {
+          if (currentView !== ViewType.GUEST_CHAT) {
+              setBadges(prev => ({ ...prev, [ViewType.GUEST_CHAT]: true }));
+          }
+      };
+      const handleNewTicket = () => {
+           if (currentView !== ViewType.GUEST_MINI_PROGRAM) {
+              setBadges(prev => ({ ...prev, [ViewType.GUEST_MINI_PROGRAM]: true }));
+          }
+      };
+
+      window.addEventListener('new_chat_message', handleNewMsg);
+      window.addEventListener('new_user_ticket', handleNewTicket);
+      return () => {
+          window.removeEventListener('new_chat_message', handleNewMsg);
+          window.removeEventListener('new_user_ticket', handleNewTicket);
+      }
+  }, [currentView]);
+
+  const handleNavClick = (view: ViewType) => {
+      setCurrentView(view);
+      setBadges(prev => ({ ...prev, [view]: false }));
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -57,8 +86,8 @@ const App: React.FC = () => {
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
-              onClick={() => setCurrentView(item.id)}
-              className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all duration-300 group
+              onClick={() => handleNavClick(item.id)}
+              className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all duration-300 group relative
                 ${currentView === item.id 
                   ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50 scale-105' 
                   : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
@@ -68,6 +97,11 @@ const App: React.FC = () => {
                 {getIcon(item.icon)}
               </div>
               <span className="font-medium text-sm text-left">{item.label}</span>
+              
+              {/* Red Dot Badge */}
+              {badges[item.id] && (
+                <span className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-800 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
+              )}
             </button>
           ))}
         </div>

@@ -308,6 +308,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       // 3. Notify Chat View to update
       window.dispatchEvent(new Event('storage_update'));
       
+      // 4. Notify App for Badge
+      window.dispatchEvent(new Event('new_chat_message'));
+      
       // Optional: Show a toast or feedback for Staff
       // alert('票券已生成并发送给用户');
   };
