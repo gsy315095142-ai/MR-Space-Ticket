@@ -42,7 +42,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
   
   // Admin Mode States
-  const [isAdminView, setIsAdminView] = useState(false);
+  const [isAdminView, setIsAdminView] = useState(userType === 'STAFF');
   const [adminTab, setAdminTab] = useState<AdminTab>('TICKETS');
   const [ticketSubTab, setTicketSubTab] = useState<TicketSubTab>('GENERATE');
   
