@@ -60,17 +60,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [bookingStep, setBookingStep] = useState<BookingStep>('NONE');
 
   // Data States
-  const [myTickets, setMyTickets] = useState<TicketItem[]>([
-    {
-      id: 'init-1',
-      name: '单人体验券',
-      peopleCount: 1,
-      storeName: '北京·ClubMedJoyview延庆度假村',
-      validUntil: '2024-12-31',
-      status: 'EXPIRED'
-    }
-  ]);
-
+  const [myTickets, setMyTickets] = useState<TicketItem[]>([]);
   const [mySessions, setMySessions] = useState<SessionItem[]>([
       {
           id: 's-1',
@@ -80,6 +70,44 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           status: 'UPCOMING'
       }
   ]);
+
+  // Load Tickets from LocalStorage on Mount (for GUEST)
+  useEffect(() => {
+      const storedTickets = localStorage.getItem('vr_user_tickets');
+      if (storedTickets) {
+          setMyTickets(JSON.parse(storedTickets));
+      } else {
+          // Default initial tickets if empty
+          setMyTickets([
+            {
+              id: 'init-1',
+              name: '单人体验券',
+              peopleCount: 1,
+              storeName: '北京·ClubMedJoyview延庆度假村',
+              validUntil: '2024-12-31',
+              status: 'EXPIRED'
+            }
+          ]);
+      }
+
+      // Listen for ticket updates from other views (e.g. Chat)
+      const handleStorageChange = () => {
+          const updated = localStorage.getItem('vr_user_tickets');
+          if (updated) {
+              setMyTickets(JSON.parse(updated));
+          }
+      };
+
+      window.addEventListener('storage_update', handleStorageChange);
+      return () => window.removeEventListener('storage_update', handleStorageChange);
+  }, []);
+
+  // Sync myTickets changes to localStorage
+  useEffect(() => {
+      if (myTickets.length > 0) {
+        localStorage.setItem('vr_user_tickets', JSON.stringify(myTickets));
+      }
+  }, [myTickets]);
 
   // Helper to get formatted date string: "10月25日"
   const formatDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
@@ -225,11 +253,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       const code = `${prefix}${randomPart}`;
       
       const names = {1: '单人体验券', 2: '双人体验券', 3: '三人体验券', 4: '四人体验券'};
+      const ticketName = names[genSelectedType as keyof typeof names];
       
       const newGenTicket: GeneratedTicketItem = {
           id: Date.now().toString(),
           code: code,
-          type: names[genSelectedType as keyof typeof names],
+          type: ticketName,
           peopleCount: genSelectedType,
           createdAt: new Date().toLocaleString('zh-CN', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}),
           status: 'ACTIVE'
@@ -237,6 +266,50 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       setGeneratedTickets([newGenTicket, ...generatedTickets]);
       setTicketSubTab('LIST');
+
+      // --- NEW LOGIC: Send Ticket Link to Chat ---
+      // 1. Construct the payload for the user ticket
+      const validDate = new Date();
+      validDate.setDate(validDate.getDate() + 30);
+      const validUntilStr = validDate.toLocaleDateString('zh-CN').replace(/\//g, '.');
+
+      const userTicketPayload: TicketItem = {
+          id: `t-${code}`,
+          name: ticketName,
+          peopleCount: genSelectedType,
+          storeName: '北京·ClubMedJoyview延庆度假村',
+          validUntil: validUntilStr,
+          status: 'UNUSED'
+      };
+
+      // 2. Load existing messages (or default)
+      const storageKey = 'vr_chat_messages';
+      const storedMsgs = localStorage.getItem(storageKey);
+      let chatHistory = storedMsgs ? JSON.parse(storedMsgs) : [];
+      
+      // If chat is empty for some reason, we might want to seed it, 
+      // but let's just append. 
+      // Note: We need to match the structure in ChatView.tsx
+      const nowTime = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      
+      const newMessage = {
+          id: Date.now(),
+          text: '送您一张体验券', // Fallback text
+          sender: 'OTHER', // Staff is "OTHER" to the User
+          time: nowTime,
+          type: 'TICKET_LINK',
+          ticketData: userTicketPayload,
+          isRedeemed: false
+      };
+
+      chatHistory.push(newMessage);
+      localStorage.setItem(storageKey, JSON.stringify(chatHistory));
+
+      // 3. Notify Chat View to update
+      window.dispatchEvent(new Event('storage_update'));
+      
+      // Optional: Show a toast or feedback for Staff
+      // alert('票券已生成并发送给用户');
   };
 
   // --- Helper Generators ---
@@ -871,7 +944,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-200 active:scale-95 transition-all flex items-center justify-center gap-2"
                              >
                                  <QrCode size={18} />
-                                 立即生成
+                                 生成并发送
                              </button>
                          </div>
                      </div>
