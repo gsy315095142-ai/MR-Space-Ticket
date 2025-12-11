@@ -63,6 +63,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   // Modal States
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [couponCode, setCouponCode] = useState('');
+  const [showBookingNotice, setShowBookingNotice] = useState(false);
+  const [noticeAgreed, setNoticeAgreed] = useState(false);
   
   // Navigation States
   const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS'>('MENU');
@@ -257,7 +259,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       }
   };
 
-  const handleConfirmBooking = () => {
+  const handlePreBookingCheck = () => {
+      // Open the Notice Modal first
+      setNoticeAgreed(false);
+      setShowBookingNotice(true);
+  };
+
+  const executeBooking = () => {
       // 1. Mark tickets as used
       const updatedTickets = myTickets.map(t => 
           selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t
@@ -285,7 +293,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       // Note: mySessions will trigger useEffect to save to localStorage 'vr_sessions'
       setMySessions([newSession, ...mySessions]);
 
-      // 3. Show Success
+      // 3. Show Success & Close Modal
+      setShowBookingNotice(false);
       setBookingStep('SUCCESS');
       
       // 4. Force Notify for other views (Backstage/Control) and trigger App badge
@@ -668,7 +677,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   </div>
                   
                   <button 
-                      onClick={handleConfirmBooking}
+                      onClick={handlePreBookingCheck}
                       className={`w-full font-bold py-3.5 rounded-full shadow-lg transition-all flex items-center justify-center gap-2
                           ${missingPeople > 0 
                               ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-orange-200' 
@@ -1635,6 +1644,54 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
             <span className="text-[10px] font-bold">我的</span>
             </button>
         </div>
+      )}
+
+      {/* Booking Notice Modal */}
+      {showBookingNotice && (
+          <div className="absolute inset-0 z-[70] flex items-center justify-center px-6">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setShowBookingNotice(false)} />
+              
+              <div className="relative w-full bg-white rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                  <button 
+                      onClick={() => setShowBookingNotice(false)}
+                      className="absolute top-4 right-4 text-blue-500 hover:text-blue-700"
+                  >
+                      <X size={20} />
+                  </button>
+
+                  <h3 className="text-lg font-bold text-center text-gray-800 mb-6">预约须知</h3>
+
+                  <div className="space-y-4 text-xs text-gray-600 mb-8">
+                      <div className="flex gap-2">
+                          <span className="font-bold min-w-[12px]">1、</span>
+                          <p>在预约场次开场前3小时内，不得撤销场次，不可取消或退票，请准时参与</p>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="font-bold min-w-[12px]">2、</span>
+                          <p>如果确认的场次时间您无法准时参与，可提前修改场次时间，最多可修改3次</p>
+                      </div>
+                      <div className="flex gap-2">
+                          <span className="font-bold min-w-[12px]">3、</span>
+                          <p>请至少在开场前5分钟修改场次时间，之后将无法修改场次时间</p>
+                      </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 mb-6 cursor-pointer" onClick={() => setNoticeAgreed(!noticeAgreed)}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${noticeAgreed ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                          {noticeAgreed && <CheckCircle size={10} className="text-white" />}
+                      </div>
+                      <span className="text-xs text-gray-500">我已了解并同意该协议</span>
+                  </div>
+
+                  <button 
+                      onClick={executeBooking}
+                      disabled={!noticeAgreed}
+                      className="w-full bg-blue-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                      确定预约
+                  </button>
+              </div>
+          </div>
       )}
 
       {/* Redemption Modal (Existing) */}
