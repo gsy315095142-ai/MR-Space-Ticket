@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
@@ -23,11 +23,34 @@ interface SessionItem {
     image?: string;
 }
 
+interface GeneratedTicketItem {
+    id: string;
+    code: string;
+    type: string; // e.g., "单人票", "双人票"
+    peopleCount: number;
+    createdAt: string;
+    status: 'ACTIVE' | 'REDEEMED';
+}
+
 type BookingStep = 'NONE' | 'BASIC' | 'TICKETS' | 'SUCCESS';
+type AdminTab = 'TICKETS' | 'DATA' | 'IDENTITY';
+type TicketSubTab = 'GENERATE' | 'LIST';
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
   
+  // Admin Mode States
+  const [isAdminView, setIsAdminView] = useState(false);
+  const [adminTab, setAdminTab] = useState<AdminTab>('TICKETS');
+  const [ticketSubTab, setTicketSubTab] = useState<TicketSubTab>('GENERATE');
+  
+  const [generatedTickets, setGeneratedTickets] = useState<GeneratedTicketItem[]>([
+      { id: 'g1', code: '18392011', type: '单人体验券', peopleCount: 1, createdAt: '2024-10-24 10:00', status: 'ACTIVE' },
+      { id: 'g2', code: '29102399', type: '双人体验券', peopleCount: 2, createdAt: '2024-10-23 15:30', status: 'REDEEMED' }
+  ]);
+  const [genSelectedType, setGenSelectedType] = useState(1); // 1, 2, 3, 4 people
+  const [adminDateFilter, setAdminDateFilter] = useState('今日');
+
   // Modal States
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [couponCode, setCouponCode] = useState('');
@@ -194,6 +217,26 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       // 3. Show Success
       setBookingStep('SUCCESS');
+  };
+
+  const handleGenerateTicket = () => {
+      const prefix = genSelectedType;
+      const randomPart = Math.floor(1000000 + Math.random() * 9000000); // 7 digit random
+      const code = `${prefix}${randomPart}`;
+      
+      const names = {1: '单人体验券', 2: '双人体验券', 3: '三人体验券', 4: '四人体验券'};
+      
+      const newGenTicket: GeneratedTicketItem = {
+          id: Date.now().toString(),
+          code: code,
+          type: names[genSelectedType as keyof typeof names],
+          peopleCount: genSelectedType,
+          createdAt: new Date().toLocaleString('zh-CN', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}),
+          status: 'ACTIVE'
+      };
+
+      setGeneratedTickets([newGenTicket, ...generatedTickets]);
+      setTicketSubTab('LIST');
   };
 
   // --- Helper Generators ---
@@ -771,7 +814,288 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
     );
   };
 
+  // --- STAFF ADMIN VIEWS ---
+  
+  const renderAdminTickets = () => {
+      return (
+          <div className="flex flex-col h-full bg-gray-50">
+             {/* Sub Nav */}
+             <div className="bg-white p-2 mx-4 mt-4 mb-2 rounded-lg flex shadow-sm border border-gray-100">
+                 <button 
+                     onClick={() => setTicketSubTab('GENERATE')}
+                     className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${ticketSubTab === 'GENERATE' ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                 >
+                     生成票券
+                 </button>
+                 <button 
+                     onClick={() => setTicketSubTab('LIST')}
+                     className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${ticketSubTab === 'LIST' ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}
+                 >
+                     票券列表
+                 </button>
+             </div>
+
+             {/* Content */}
+             <div className="flex-1 overflow-y-auto p-4 pb-20">
+                 {ticketSubTab === 'GENERATE' ? (
+                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+                             <Ticket className="text-purple-600" /> 
+                             配置票券类型
+                         </h3>
+                         
+                         <div className="grid grid-cols-2 gap-4 mb-8">
+                             {[1, 2, 3, 4].map(num => (
+                                 <button
+                                     key={num}
+                                     onClick={() => setGenSelectedType(num)}
+                                     className={`h-24 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all
+                                        ${genSelectedType === num 
+                                            ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                                            : 'border-gray-100 bg-white text-gray-600 hover:border-gray-200'}
+                                     `}
+                                 >
+                                     <Users size={24} />
+                                     <span className="font-bold">{num} 人票</span>
+                                 </button>
+                             ))}
+                         </div>
+
+                         <div className="border-t border-gray-100 pt-6">
+                             <div className="flex justify-between text-sm text-gray-500 mb-4">
+                                 <span>已选类型</span>
+                                 <span className="font-bold text-gray-800">{genSelectedType}人体验券</span>
+                             </div>
+                             <button 
+                                 onClick={handleGenerateTicket}
+                                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                             >
+                                 <QrCode size={18} />
+                                 立即生成
+                             </button>
+                         </div>
+                     </div>
+                 ) : (
+                     <div className="space-y-3">
+                         {generatedTickets.map(ticket => (
+                             <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                                 <div>
+                                     <div className="flex items-center gap-2">
+                                         <span className="font-mono font-bold text-lg text-gray-800 tracking-wider">{ticket.code}</span>
+                                         <button className="text-gray-400 hover:text-purple-600"><Copy size={14}/></button>
+                                     </div>
+                                     <div className="text-xs text-gray-500 mt-1 flex gap-2">
+                                         <span>{ticket.type}</span>
+                                         <span>•</span>
+                                         <span>{ticket.createdAt}</span>
+                                     </div>
+                                 </div>
+                                 <div>
+                                     <span className={`px-2 py-1 rounded text-xs font-medium
+                                        ${ticket.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}
+                                     `}>
+                                         {ticket.status === 'ACTIVE' ? '未使用' : '已核销'}
+                                     </span>
+                                 </div>
+                             </div>
+                         ))}
+                         {generatedTickets.length === 0 && (
+                             <div className="text-center text-gray-400 py-10">暂无生成记录</div>
+                         )}
+                     </div>
+                 )}
+             </div>
+          </div>
+      );
+  };
+
+  const renderAdminData = () => {
+      return (
+          <div className="flex flex-col h-full bg-gray-50 p-4 pb-20 overflow-y-auto">
+              {/* Filter Bar */}
+              <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 mb-4 sticky top-0 z-10">
+                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between text-sm cursor-pointer">
+                      <div className="flex items-center gap-2 text-gray-600">
+                          <Calendar size={14} />
+                          <span>{adminDateFilter}</span>
+                      </div>
+                      <ChevronRight size={14} className="rotate-90 text-gray-400" />
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between text-sm cursor-pointer">
+                      <div className="flex items-center gap-2 text-gray-600">
+                           <MapPin size={14} />
+                           <span className="truncate">延庆店</span>
+                      </div>
+                      <ChevronRight size={14} className="rotate-90 text-gray-400" />
+                  </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white shadow-lg shadow-blue-200">
+                      <div className="text-blue-100 text-xs mb-1">今日营收</div>
+                      <div className="text-2xl font-bold">¥12,890</div>
+                      <div className="text-blue-200 text-[10px] mt-1 flex items-center gap-1">
+                          <span className="bg-white/20 px-1 rounded">+12%</span> 较昨日
+                      </div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                      <div className="text-gray-500 text-xs mb-1">接待人数</div>
+                      <div className="text-2xl font-bold text-gray-800">128 <span className="text-sm font-normal text-gray-400">人</span></div>
+                      <div className="text-green-500 text-[10px] mt-1">
+                          满载率 85%
+                      </div>
+                  </div>
+              </div>
+
+              {/* Chart 1 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+                          <BarChart size={16} className="text-purple-500" />
+                          时段客流统计
+                      </h3>
+                  </div>
+                  <div className="h-32 flex items-end justify-between px-2 gap-2">
+                      {[30, 45, 70, 100, 60, 40, 20].map((h, i) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                              <div className="w-full bg-purple-100 rounded-t-sm relative h-full flex items-end overflow-hidden group-hover:bg-purple-200 transition-colors">
+                                  <div className="w-full bg-purple-500 rounded-t-sm transition-all duration-500" style={{height: `${h}%`}}></div>
+                              </div>
+                              <span className="text-[9px] text-gray-400">{10+i}:00</span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+
+               {/* Chart 2 */}
+               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+                          <PieChart size={16} className="text-orange-500" />
+                          票券类型占比
+                      </h3>
+                  </div>
+                  <div className="flex items-center gap-4">
+                      <div className="w-24 h-24 rounded-full border-[12px] border-orange-500 border-r-blue-500 border-b-green-500 rotate-45"></div>
+                      <div className="space-y-2 flex-1">
+                          <div className="flex justify-between text-xs">
+                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span>双人票</span>
+                              <span className="font-bold">45%</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>单人票</span>
+                              <span className="font-bold">30%</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>家庭票</span>
+                              <span className="font-bold">25%</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
+  };
+
+  const renderAdminIdentity = () => {
+      return (
+          <div className="flex flex-col h-full bg-gray-50 p-6 pt-10">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center mb-6">
+                  <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-4 border-4 border-purple-50 overflow-hidden">
+                      <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="Avatar" className="w-full h-full" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800">店长 · 李晓明</h2>
+                  <p className="text-gray-500 text-sm mt-1">ID: STAFF_88291</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-50">
+                      <div className="text-center">
+                          <div className="text-gray-400 text-xs mb-1">所属门店</div>
+                          <div className="font-bold text-gray-700">延庆度假村店</div>
+                      </div>
+                      <div className="text-center border-l border-gray-100">
+                          <div className="text-gray-400 text-xs mb-1">管理权限</div>
+                          <div className="font-bold text-purple-600">一级管理员</div>
+                      </div>
+                  </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                   <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-50 text-left">
+                       <span className="flex items-center gap-3 font-medium text-gray-700">
+                           <Settings size={18} /> 系统设置
+                       </span>
+                       <ChevronRight size={16} className="text-gray-400" />
+                   </button>
+                   <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-50 text-left">
+                       <span className="flex items-center gap-3 font-medium text-gray-700">
+                           <RefreshCw size={18} /> 检查更新
+                       </span>
+                       <span className="text-xs text-gray-400">v1.2.0</span>
+                   </button>
+              </div>
+
+              <button 
+                  onClick={() => setIsAdminView(false)}
+                  className="mt-auto w-full bg-red-50 text-red-600 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+              >
+                  <LogOut size={18} />
+                  退出管理模式
+              </button>
+          </div>
+      );
+  };
+
+  const renderAdminView = () => {
+      return (
+          <div className="flex flex-col h-full bg-white relative">
+              {/* Top Bar for Admin */}
+              <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm border-b border-gray-100 sticky top-0 z-20">
+                  <div className="font-black text-lg text-purple-700 italic">ADMIN</div>
+                  <div className="text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-500">
+                      工作人员端
+                  </div>
+              </div>
+              
+              <div className="flex-1 overflow-hidden relative">
+                  {adminTab === 'TICKETS' && renderAdminTickets()}
+                  {adminTab === 'DATA' && renderAdminData()}
+                  {adminTab === 'IDENTITY' && renderAdminIdentity()}
+              </div>
+
+              {/* Admin Bottom Nav */}
+              <div className="h-16 bg-white border-t border-gray-200 flex justify-around items-center px-6 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-30">
+                  <button 
+                      onClick={() => setAdminTab('TICKETS')}
+                      className={`flex flex-col items-center gap-1 ${adminTab === 'TICKETS' ? 'text-purple-600' : 'text-gray-400'}`}
+                  >
+                      <Ticket size={22} strokeWidth={adminTab === 'TICKETS' ? 2.5 : 2} />
+                      <span className="text-[10px] font-bold">票券</span>
+                  </button>
+                  <button 
+                      onClick={() => setAdminTab('DATA')}
+                      className={`flex flex-col items-center gap-1 ${adminTab === 'DATA' ? 'text-purple-600' : 'text-gray-400'}`}
+                  >
+                      <PieChart size={22} strokeWidth={adminTab === 'DATA' ? 2.5 : 2} />
+                      <span className="text-[10px] font-bold">数据</span>
+                  </button>
+                  <button 
+                      onClick={() => setAdminTab('IDENTITY')}
+                      className={`flex flex-col items-center gap-1 ${adminTab === 'IDENTITY' ? 'text-purple-600' : 'text-gray-400'}`}
+                  >
+                      <User size={22} strokeWidth={adminTab === 'IDENTITY' ? 2.5 : 2} />
+                      <span className="text-[10px] font-bold">身份</span>
+                  </button>
+              </div>
+          </div>
+      )
+  };
+
   // Main Render Logic
+  if (isAdminView) {
+      return renderAdminView();
+  }
+
   return (
     <div className="flex flex-col h-full bg-white relative">
       
@@ -791,6 +1115,20 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     alt="VR Space Front Desk" 
                     className="w-full h-full object-cover"
                 />
+                
+                {/* Manage Button (STAFF ONLY) */}
+                {userType === 'STAFF' && (
+                    <div className="absolute top-10 right-4 z-20">
+                        <button 
+                            onClick={() => setIsAdminView(true)}
+                            className="bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-gray-800 shadow-sm border border-white/50 flex items-center gap-1 hover:bg-white transition-colors"
+                        >
+                            <Settings size={14} />
+                            管理
+                        </button>
+                    </div>
+                )}
+
                 {/* Location Pill */}
                 <div className="absolute top-10 left-4 z-10">
                     <div className="bg-white/95 backdrop-blur-sm pl-3 pr-4 py-2 rounded-full flex items-center gap-1 shadow-sm border border-gray-100">
