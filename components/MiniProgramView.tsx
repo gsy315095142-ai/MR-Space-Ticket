@@ -1424,7 +1424,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 {/* Recent Reservation Section */}
                 {(() => {
                     // Filter for upcoming sessions logic
-                    const upcomingSessions = mySessions.filter(s => getSessionStatus(s.timeStr) === 'UPCOMING');
+                    const upcomingSessions = mySessions.filter(s => {
+                        if (s.status === 'RUNNING' || s.status === 'COMPLETED') return false;
+                        return getSessionStatus(s.timeStr) === 'UPCOMING';
+                    });
                     const latestSession = upcomingSessions[0]; // Assuming ordered by newest
                     
                     if (latestSession) {
