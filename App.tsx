@@ -17,7 +17,9 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>(ViewType.STAFF_FRONT_STORE);
   const [badges, setBadges] = useState<Record<string, boolean>>({
     [ViewType.GUEST_CHAT]: false,
-    [ViewType.GUEST_MINI_PROGRAM]: false
+    [ViewType.GUEST_MINI_PROGRAM]: false,
+    [ViewType.STAFF_FRONT_STORE]: false,
+    [ViewType.STAFF_BACKSTAGE]: false
   });
 
   useEffect(() => {
@@ -31,12 +33,27 @@ const App: React.FC = () => {
               setBadges(prev => ({ ...prev, [ViewType.GUEST_MINI_PROGRAM]: true }));
           }
       };
+      const handleNewBooking = () => {
+          if (currentView !== ViewType.STAFF_FRONT_STORE) {
+              setBadges(prev => ({ ...prev, [ViewType.STAFF_FRONT_STORE]: true }));
+          }
+      };
+      const handleBackstageTransfer = () => {
+          if (currentView !== ViewType.STAFF_BACKSTAGE) {
+              setBadges(prev => ({ ...prev, [ViewType.STAFF_BACKSTAGE]: true }));
+          }
+      };
 
       window.addEventListener('new_chat_message', handleNewMsg);
       window.addEventListener('new_user_ticket', handleNewTicket);
+      window.addEventListener('new_booking_created', handleNewBooking);
+      window.addEventListener('session_transferred_to_backstage', handleBackstageTransfer);
+      
       return () => {
           window.removeEventListener('new_chat_message', handleNewMsg);
           window.removeEventListener('new_user_ticket', handleNewTicket);
+          window.removeEventListener('new_booking_created', handleNewBooking);
+          window.removeEventListener('session_transferred_to_backstage', handleBackstageTransfer);
       }
   }, [currentView]);
 

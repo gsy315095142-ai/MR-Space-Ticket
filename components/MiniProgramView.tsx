@@ -271,8 +271,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       // 3. Show Success
       setBookingStep('SUCCESS');
       
-      // 4. Force Notify for other views (Backstage/Control)
-      setTimeout(() => window.dispatchEvent(new Event('storage_update')), 100);
+      // 4. Force Notify for other views (Backstage/Control) and trigger App badge
+      setTimeout(() => {
+          window.dispatchEvent(new Event('storage_update'));
+          window.dispatchEvent(new Event('new_booking_created'));
+      }, 100);
   };
 
   const handleGenerateTicket = () => {
@@ -353,6 +356,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       // Update local transferred state if we were tracking it properly, but here we can just alert
       alert('已转入后厅');
       window.dispatchEvent(new Event('storage_update'));
+      // Trigger App badge
+      window.dispatchEvent(new Event('session_transferred_to_backstage'));
   };
 
   // --- Helper Generators ---
