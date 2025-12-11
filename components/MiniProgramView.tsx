@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
@@ -66,6 +66,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const [showBookingNotice, setShowBookingNotice] = useState(false);
   const [noticeAgreed, setNoticeAgreed] = useState(false);
   
+  // Modification Modals
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showAddPeopleModal, setShowAddPeopleModal] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [addPeopleCount, setAddPeopleCount] = useState(1);
+  
   // Navigation States
   const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS'>('MENU');
   const [bookingStep, setBookingStep] = useState<BookingStep>('NONE');
@@ -123,7 +130,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
             userName: '初始用户'
         };
         setMySessions([initialSession]);
-        // Don't save initial immediately to avoid overwriting if empty
     }
 
     // Listen for updates
@@ -153,6 +159,24 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
     }
   }, [mySessions]);
 
+  // Auto-scroll to current time when entering Control tab
+  useEffect(() => {
+    if (adminTab === 'CONTROL') {
+        const now = new Date();
+        const h = now.getHours();
+        const m = Math.floor(now.getMinutes() / 10) * 10;
+        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        
+        // Short delay to ensure DOM is rendered
+        setTimeout(() => {
+            const element = document.getElementById(`slot-${timeStr}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+    }
+  }, [adminTab]);
+
 
   // Booking Flow State
   const [bookingData, setBookingData] = useState({
@@ -172,13 +196,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   // --- Helper: Check Session Status ---
   const getSessionStatus = (timeStr: string): 'UPCOMING' | 'COMPLETED' => {
     try {
-        // Expected format: "YYYY.MM.DD HH:mm-HH:mm"
-        // Example: "2025.06.17 15:00-15:30"
         const [datePart, timeRange] = timeStr.split(' ');
         if (!datePart || !timeRange) return 'UPCOMING';
         
-        const normalizedDate = datePart.replace(/\./g, '-'); // 2025-06-17
-        const endTimeStr = timeRange.split('-')[1]; // 15:30
+        const normalizedDate = datePart.replace(/\./g, '-'); 
+        const endTimeStr = timeRange.split('-')[1]; 
         
         if (!endTimeStr) return 'UPCOMING';
 
@@ -199,14 +221,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
     const code = couponCode.trim();
     if (!code) return;
     
-    // Determine ticket type based on first digit
     let ticketConfig = { name: '单人体验券', count: 1 };
     if (code.startsWith('2')) ticketConfig = { name: '双人体验券', count: 2 };
     else if (code.startsWith('3')) ticketConfig = { name: '三人体验券', count: 3 };
     else if (code.startsWith('4')) ticketConfig = { name: '四人体验券', count: 4 };
     else if (code.startsWith('1')) ticketConfig = { name: '单人体验券', count: 1 };
     
-    // Calculate validity (30 days from now)
     const validDate = new Date();
     validDate.setDate(validDate.getDate() + 30);
     const validUntilStr = validDate.toLocaleDateString('zh-CN').replace(/\//g, '.');
@@ -220,13 +240,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
         status: 'UNUSED'
     };
     
-    // Simulate API call and success feedback
     setTimeout(() => {
         setMyTickets([newTicket, ...myTickets]);
         setShowRedeemModal(false);
         setCouponCode('');
-        setActiveTab('MINE'); // Navigate to profile
-        setMineView('TICKETS'); // Go directly to tickets list
+        setActiveTab('MINE');
+        setMineView('TICKETS');
     }, 500);
   };
 
@@ -234,7 +253,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       setBookingStep('BASIC');
       setBookingData({ 
         ...bookingData, 
-        date: formatDate(new Date()), // Reset to today
+        date: formatDate(new Date()), 
         timeSlot: '', 
         peopleCount: 1 
       });
@@ -253,26 +272,21 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       if (selectedTicketIds.includes(ticketId)) {
           setSelectedTicketIds(selectedTicketIds.filter(id => id !== ticketId));
       } else {
-          // Optional: Add logic to prevent selecting more tickets than needed? 
-          // For now, let user select freely.
           setSelectedTicketIds([...selectedTicketIds, ticketId]);
       }
   };
 
   const handlePreBookingCheck = () => {
-      // Open the Notice Modal first
       setNoticeAgreed(false);
       setShowBookingNotice(true);
   };
 
   const executeBooking = () => {
-      // 1. Mark tickets as used
       const updatedTickets = myTickets.map(t => 
           selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t
       );
       setMyTickets(updatedTickets);
 
-      // Calculate End Time (Start Time + 30 mins)
       const [sh, sm] = bookingData.timeSlot.split(':').map(Number);
       const endDate = new Date();
       endDate.setHours(sh, sm + 30);
@@ -281,23 +295,20 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       const year = new Date().getFullYear();
       
-      // 2. Create Session
       const newSession: SessionItem = {
           id: Date.now().toString(),
           timeStr: `${year}.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
           location: '北京·ClubMedJoyview延庆度假村',
           peopleCount: bookingData.peopleCount,
           status: 'UPCOMING',
-          userName: '体验用户'
+          userName: '体验用户',
+          transferredToBackstage: false
       };
-      // Note: mySessions will trigger useEffect to save to localStorage 'vr_sessions'
       setMySessions([newSession, ...mySessions]);
 
-      // 3. Show Success & Close Modal
       setShowBookingNotice(false);
       setBookingStep('SUCCESS');
       
-      // 4. Force Notify for other views (Backstage/Control) and trigger App badge
       setTimeout(() => {
           window.dispatchEvent(new Event('storage_update'));
           window.dispatchEvent(new Event('new_booking_created'));
@@ -306,7 +317,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
   const handleGenerateTicket = () => {
       const prefix = genSelectedType;
-      const randomPart = Math.floor(1000000 + Math.random() * 9000000); // 7 digit random
+      const randomPart = Math.floor(1000000 + Math.random() * 9000000); 
       const code = `${prefix}${randomPart}`;
       
       const names = {1: '单人体验券', 2: '双人体验券', 3: '三人体验券', 4: '四人体验券'};
@@ -324,8 +335,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       setGeneratedTickets([newGenTicket, ...generatedTickets]);
       setTicketSubTab('LIST');
 
-      // --- NEW LOGIC: Send Ticket Link to Chat ---
-      // 1. Construct the payload for the user ticket
       const validDate = new Date();
       validDate.setDate(validDate.getDate() + 30);
       const validUntilStr = validDate.toLocaleDateString('zh-CN').replace(/\//g, '.');
@@ -339,7 +348,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           status: 'UNUSED'
       };
 
-      // 2. Load existing messages (or default)
       const storageKey = 'vr_chat_messages';
       const storedMsgs = localStorage.getItem(storageKey);
       let chatHistory = storedMsgs ? JSON.parse(storedMsgs) : [];
@@ -348,8 +356,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       
       const newMessage = {
           id: Date.now(),
-          text: '送您一张体验券', // Fallback text
-          sender: 'OTHER', // Staff is "OTHER" to the User
+          text: '送您一张体验券', 
+          sender: 'OTHER', 
           time: nowTime,
           type: 'TICKET_LINK',
           ticketData: userTicketPayload,
@@ -359,10 +367,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       chatHistory.push(newMessage);
       localStorage.setItem(storageKey, JSON.stringify(chatHistory));
 
-      // 3. Notify Chat View to update
       window.dispatchEvent(new Event('storage_update'));
-      
-      // 4. Notify App for Badge
       window.dispatchEvent(new Event('new_chat_message'));
   };
 
@@ -376,13 +381,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           return;
       }
 
-      const updatedData = [session, ...backstageData];
+      const sessionWithFlag = { ...session, transferredToBackstage: true };
+      const updatedData = [sessionWithFlag, ...backstageData];
       localStorage.setItem(key, JSON.stringify(updatedData));
       
-      // Update local transferred state if we were tracking it properly, but here we can just alert
+      // Update User Sessions as well to mark as transferred
+      const updatedUserSessions = mySessions.map(s => 
+          s.id === session.id ? { ...s, transferredToBackstage: true } : s
+      );
+      setMySessions(updatedUserSessions);
+      
       alert('已转入后厅');
       window.dispatchEvent(new Event('storage_update'));
-      // Trigger App badge
       window.dispatchEvent(new Event('session_transferred_to_backstage'));
   };
 
@@ -393,18 +403,15 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       let end = new Date();
 
       if (filter === '今天') {
-          // start/end is today
       } else if (filter === '昨天') {
           start.setDate(today.getDate() - 1);
           end.setDate(today.getDate() - 1);
       } else if (filter === '本月') {
-          start.setDate(1); // 1st of month
+          start.setDate(1); 
           // end is today
       } else if (filter === '上个月') {
-          // Set to 1st of previous month
           start.setMonth(start.getMonth() - 1);
           start.setDate(1);
-          // Set to last day of previous month
           end.setDate(0); 
       }
 
@@ -434,7 +441,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       let startM = 0;
 
       if (!fullDay && isToday) {
-          // If today and for booking suggestion, start from current time
           startH = now.getHours();
           startM = Math.ceil(now.getMinutes() / 10) * 10;
           if (startM === 60) {
@@ -446,17 +452,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       let currentH = startH;
       let currentM = startM;
 
-      // For Control View (fullDay=true), we want all slots 10:00-22:00
-      // For Booking View (fullDay=false), we want next 4 slots
       const maxSlots = fullDay ? 100 : 4; 
 
       while (slots.length < maxSlots) {
-          if (currentH > 22 || (currentH === 22 && currentM > 0)) break; // Cutoff at 22:00
+          if (currentH > 22 || (currentH === 22 && currentM > 0)) break; 
 
           const timeStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
           slots.push(timeStr);
 
-          // Increment 10 mins
           currentM += 10;
           if (currentM === 60) {
               currentH += 1;
@@ -467,6 +470,74 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       return slots;
   };
 
+  // --- Modification Handlers ---
+
+  const getLatestSession = () => mySessions[0];
+
+  const handleOpenReschedule = () => {
+      const session = getLatestSession();
+      if (!session) return;
+      if (session.transferredToBackstage || session.status !== 'UPCOMING') {
+          alert("该场次已开启");
+          return;
+      }
+      setRescheduleDate(bookingData.date);
+      setRescheduleTime('');
+      setShowRescheduleModal(true);
+  };
+
+  const handleConfirmReschedule = () => {
+      if(!rescheduleTime) {
+          alert('请选择时间');
+          return;
+      }
+      
+      const session = getLatestSession();
+      const [sh, sm] = rescheduleTime.split(':').map(Number);
+      const endDate = new Date();
+      endDate.setHours(sh, sm + 30);
+      const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+      const fullTimeStr = `${rescheduleTime}-${endTimeStr}`;
+      const year = new Date().getFullYear();
+      const newTimeStr = `${year}.${rescheduleDate.replace('月','.').replace('日','')} ${fullTimeStr}`;
+
+      const updatedSessions = mySessions.map(s => s.id === session.id ? {...s, timeStr: newTimeStr} : s);
+      setMySessions(updatedSessions);
+      
+      setBookingData({...bookingData, date: rescheduleDate, timeSlot: rescheduleTime});
+
+      setShowRescheduleModal(false);
+      alert('改签成功');
+  };
+
+  const handleOpenAddPeople = () => {
+      const session = getLatestSession();
+      if (!session) return;
+      if (session.transferredToBackstage || session.status !== 'UPCOMING') {
+          alert("该场次已开启");
+          return;
+      }
+      setAddPeopleCount(1);
+      setShowAddPeopleModal(true);
+  };
+
+  const handleConfirmAddPeople = () => {
+      const session = getLatestSession();
+      const newTotal = session.peopleCount + addPeopleCount;
+      if (newTotal > 4) {
+          alert('单场次预约最多4人');
+          return;
+      }
+
+      const updatedSessions = mySessions.map(s => s.id === session.id ? {...s, peopleCount: newTotal} : s);
+      setMySessions(updatedSessions);
+      
+      setBookingData({...bookingData, peopleCount: newTotal});
+
+      setShowAddPeopleModal(false);
+      alert('人数增加成功');
+  };
+
   // --- Render Helpers ---
 
   const renderBookingBasic = () => {
@@ -475,7 +546,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       return (
           <div className="flex flex-col h-full bg-white animate-in slide-in-from-right duration-300">
-              {/* Header */}
               <div className="px-4 py-4 flex items-center border-b border-gray-100">
                   <button onClick={() => setBookingStep('NONE')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                       <X size={24} />
@@ -484,7 +554,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  {/* Location (Fixed) */}
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">体验地点</h3>
                       <div className="flex items-center gap-2 text-gray-800 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -493,7 +562,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                       </div>
                   </div>
 
-                  {/* People Count */}
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">预约人数</h3>
                       <div className="flex items-center gap-4">
@@ -513,20 +581,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                       </div>
                   </div>
 
-                  {/* Date Selection */}
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">选择日期</h3>
                       <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
                           {dates.map(date => {
                               const isToday = date === formatDate(new Date());
-                              // Simple week day calculation for demo
                               const dayIndex = (new Date().getDay() + dates.indexOf(date)) % 7;
                               const weekDays = ['日','一','二','三','四','五','六'];
 
                               return (
                                 <button
                                     key={date}
-                                    onClick={() => setBookingData({...bookingData, date: date, timeSlot: ''})} // Reset time slot on date change
+                                    onClick={() => setBookingData({...bookingData, date: date, timeSlot: ''})} 
                                     className={`flex-shrink-0 w-24 h-20 rounded-xl flex flex-col items-center justify-center gap-1 border-2 transition-all
                                         ${bookingData.date === date 
                                             ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
@@ -543,7 +609,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                       </div>
                   </div>
 
-                  {/* Time Slots */}
                   <div>
                       <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">选择场次</h3>
                       {timeSlots.length > 0 ? (
@@ -573,7 +638,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   </div>
               </div>
 
-              {/* Footer */}
               <div className="p-4 border-t border-gray-100">
                   <button 
                       onClick={handleBasicInfoSubmit}
@@ -590,7 +654,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const renderBookingTickets = () => {
       const availableTickets = myTickets.filter(t => t.status === 'UNUSED');
       
-      // Calculations
       const selectedTickets = availableTickets.filter(t => selectedTicketIds.includes(t.id));
       const totalCapacity = selectedTickets.reduce((sum, t) => sum + t.peopleCount, 0);
       const missingPeople = Math.max(0, bookingData.peopleCount - totalCapacity);
@@ -600,7 +663,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       return (
           <div className="flex flex-col h-full bg-gray-50 animate-in slide-in-from-right duration-300">
-               {/* Header */}
                <div className="bg-white px-4 py-4 flex items-center shadow-sm z-10">
                   <button onClick={() => setBookingStep('BASIC')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                       <ChevronLeft size={24} />
@@ -609,7 +671,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 pb-24">
-                  {/* Summary Card */}
                   <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-blue-100">
                       <div className="flex justify-between items-center mb-2">
                           <span className="text-gray-500 text-sm">预约时间</span>
@@ -656,7 +717,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   </div>
               </div>
 
-              {/* Bottom Action Bar */}
               <div className="bg-white border-t border-gray-100 p-4 pb-8 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
                   <div className="flex justify-between items-end mb-4 text-sm">
                       <div className="text-gray-500">
@@ -697,52 +757,249 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
   const renderBookingSuccess = () => {
       const year = new Date().getFullYear();
+      const dateStr = `${year}-${bookingData.date.replace('月','-').replace('日','')}`;
+      const code = "335577"; 
+
       return (
-          <div className="flex flex-col items-center justify-center h-full bg-white p-6 animate-in zoom-in-95 duration-300">
-              <div className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6 shadow-sm">
-                  <CheckCircle size={48} />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">预约成功!</h2>
-              <p className="text-gray-500 text-center mb-8">您已成功预约 VR 大空间体验<br/>请提前15分钟到达现场签到</p>
-              
-              <div className="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
-                   <div className="space-y-4">
-                       <div className="flex justify-between">
-                           <span className="text-gray-400 text-sm">体验项目</span>
-                           <span className="font-bold text-gray-800">VR大空间·沉浸展</span>
-                       </div>
-                       <div className="flex justify-between">
-                           <span className="text-gray-400 text-sm">预约时间</span>
-                           <span className="font-bold text-gray-800">{year}.{bookingData.date.replace('月','.').replace('日','')} {bookingData.timeSlot}</span>
-                       </div>
-                       <div className="flex justify-between">
-                           <span className="text-gray-400 text-sm">预约人数</span>
-                           <span className="font-bold text-gray-800">{bookingData.peopleCount}人</span>
-                       </div>
-                   </div>
+          <div className="absolute inset-0 z-50 flex flex-col items-center overflow-hidden animate-in fade-in duration-300">
+              <div className="absolute inset-0">
+                  <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover" alt="Background" />
+                  <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-[2px]"></div>
               </div>
 
-              <div className="flex flex-col w-full gap-3">
-                  <button 
-                      onClick={() => {
-                          setBookingStep('NONE');
-                          setActiveTab('MINE');
-                          setMineView('SESSIONS');
-                      }}
-                      className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-full shadow-lg active:scale-95 transition-all"
-                  >
-                      查看我的场次
-                  </button>
+              <div className="relative w-full px-4 pt-10 pb-4 flex items-center text-white/90 z-10">
                   <button 
                       onClick={() => {
                           setBookingStep('NONE');
                           setActiveTab('HOME');
                       }}
-                      className="w-full bg-gray-100 text-gray-600 font-bold py-3.5 rounded-full hover:bg-gray-200 transition-all"
+                      className="flex items-center gap-1 text-sm font-medium hover:text-white transition-colors"
                   >
+                      <ChevronLeft size={20} />
                       返回首页
                   </button>
               </div>
+
+              <div className="relative z-10 w-full flex-1 flex flex-col items-center px-6 overflow-y-auto no-scrollbar">
+                  
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 mb-4 mt-2">
+                      <CheckCircle size={32} className="text-white" strokeWidth={3} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-6 tracking-wide">场次预定成功</h2>
+
+                  <div className="text-white/90 text-sm font-medium mb-4 text-center">
+                      LUMI魔法学院·XR沉浸式大空间体验
+                  </div>
+
+                  <div className="w-full bg-[#FCFBF7] rounded-xl shadow-2xl overflow-hidden mb-6 relative">
+                      <div className="p-5 relative">
+                          <div className="flex justify-between items-start mb-6">
+                              <div>
+                                  <div className="text-gray-900 font-bold text-sm">北京·ClubMedJoyview延庆度假村</div>
+                                  <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
+                                      <MapPin size={12} />
+                                      <span>3L梦幻厅</span>
+                                  </div>
+                              </div>
+                              <button className="flex flex-col items-center text-gray-400 gap-1">
+                                  <Share2 size={16} />
+                                  <span className="text-[10px]">分享场次</span>
+                              </button>
+                          </div>
+
+                          <div className="space-y-4 text-sm">
+                              <div className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3">
+                                  <span className="text-gray-500">预约日期:</span>
+                                  <span className="font-bold text-gray-800 font-mono">{dateStr}</span>
+                              </div>
+                              <div className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3">
+                                  <span className="text-gray-500">时段场次:</span>
+                                  <div className="flex items-center gap-3">
+                                      <span className="font-bold text-gray-800 font-mono">{bookingData.timeSlot}</span>
+                                      <button 
+                                          onClick={handleOpenReschedule}
+                                          className="bg-[#BFA07A] text-white text-[10px] px-2 py-1 rounded hover:bg-[#A88C68] transition-colors"
+                                      >
+                                          改签
+                                      </button>
+                                  </div>
+                              </div>
+                              <div className="flex justify-between items-center border-b border-dashed border-gray-200 pb-3">
+                                  <span className="text-gray-500">预约人数:</span>
+                                  <div className="flex items-center gap-3">
+                                      <span className="font-bold text-gray-800">{bookingData.peopleCount}人</span>
+                                      <button 
+                                          onClick={handleOpenAddPeople}
+                                          className="bg-[#BFA07A] text-white text-[10px] px-2 py-1 rounded hover:bg-[#A88C68] transition-colors"
+                                      >
+                                          增加
+                                      </button>
+                                  </div>
+                              </div>
+                              <div className="flex justify-between items-center pb-2">
+                                  <span className="text-gray-500">联系人电话:</span>
+                                  <div className="flex items-center gap-2">
+                                      <span className="font-bold text-gray-800 font-mono">13959213445</span>
+                                      <Edit size={14} className="text-gray-400" />
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="bg-[#F5F2EA] rounded-lg p-3 mt-4 flex items-start gap-2">
+                              <AlertCircle size={14} className="text-gray-500 mt-0.5 shrink-0" />
+                              <p className="text-[10px] text-gray-500 leading-tight">
+                                  请确保您的手机畅通，方便服务人员和您联系
+                              </p>
+                          </div>
+                      </div>
+
+                      <div className="bg-[#2C2C2C] px-5 py-3 flex items-center gap-2">
+                          <Bell size={14} className="text-[#D4B68B]" />
+                          <span className="text-[#D4B68B] text-[10px]">
+                              温馨提示:请提前15分钟到场，预留创建角色的时间
+                          </span>
+                      </div>
+                  </div>
+
+                  <div className="w-full flex flex-col items-center mb-10">
+                      <div className="text-white/80 text-sm mb-2 flex items-center gap-1 cursor-pointer">
+                          查看角色激活码 <ChevronDown size={14} />
+                      </div>
+                      
+                      <div className="w-full bg-white rounded-xl p-5 shadow-lg">
+                          <div className="flex justify-between items-center mb-2">
+                              <div className="flex flex-col items-center flex-1 border-r border-gray-100 pr-4">
+                                  <button className="flex flex-col items-center gap-1 text-gray-500">
+                                      <ArrowRightLeft size={18} />
+                                      <span className="text-[10px]">转让激活码</span>
+                                  </button>
+                              </div>
+                              
+                              <div className="flex flex-col items-center flex-[2]">
+                                  <div className="text-xs text-gray-500 mb-1">您的角色激活码</div>
+                                  <div className="text-3xl font-bold text-[#A67C52] tracking-widest font-mono">
+                                      {code}
+                                  </div>
+                              </div>
+
+                              <div className="flex flex-col items-center flex-1 border-l border-gray-100 pl-4">
+                                  <button className="flex flex-col items-center gap-1 text-gray-500">
+                                      <ScanLine size={18} />
+                                      <span className="text-[10px]">扫码激活</span>
+                                  </button>
+                              </div>
+                          </div>
+                          
+                          <div className="text-center text-[10px] text-gray-400 mt-4">
+                              请前往现场扫描体验指南二维码，即可激活角色
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Reschedule Modal */}
+              {showRescheduleModal && (
+                  <div className="absolute inset-0 z-[60] flex items-end sm:items-center justify-center">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowRescheduleModal(false)}></div>
+                      <div className="relative w-full bg-white rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+                          <div className="flex justify-between items-center mb-6">
+                              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                  <CalendarClock size={20} className="text-blue-500"/> 改签场次
+                              </h3>
+                              <button onClick={() => setShowRescheduleModal(false)}><X size={20} className="text-gray-400"/></button>
+                          </div>
+                          
+                          <div className="space-y-4 mb-6">
+                              <div>
+                                  <label className="text-xs font-bold text-gray-500 mb-2 block">选择日期</label>
+                                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                      {getNextThreeDays().map(date => (
+                                          <button 
+                                              key={date}
+                                              onClick={() => { setRescheduleDate(date); setRescheduleTime(''); }}
+                                              className={`px-3 py-2 rounded-lg border text-sm whitespace-nowrap ${rescheduleDate === date ? 'bg-blue-500 text-white border-blue-500' : 'border-gray-200 text-gray-600'}`}
+                                          >
+                                              {date}
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+                              <div>
+                                  <label className="text-xs font-bold text-gray-500 mb-2 block">选择时间</label>
+                                  <div className="grid grid-cols-4 gap-2 h-32 overflow-y-auto">
+                                      {generateTimeSlots(rescheduleDate).map(time => (
+                                          <button 
+                                              key={time}
+                                              onClick={() => setRescheduleTime(time)}
+                                              className={`py-1.5 rounded text-xs font-medium border ${rescheduleTime === time ? 'bg-blue-50 text-blue-600 border-blue-500' : 'border-gray-200 text-gray-600'}`}
+                                          >
+                                              {time}
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+                          </div>
+                          
+                          <button 
+                              onClick={handleConfirmReschedule}
+                              className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200"
+                          >
+                              确认改签
+                          </button>
+                      </div>
+                  </div>
+              )}
+
+              {/* Add People Modal */}
+              {showAddPeopleModal && (
+                  <div className="absolute inset-0 z-[60] flex items-end sm:items-center justify-center">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddPeopleModal(false)}></div>
+                      <div className="relative w-full bg-white rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+                          <div className="flex justify-between items-center mb-6">
+                              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                  <UserPlus size={20} className="text-blue-500"/> 增加人数
+                              </h3>
+                              <button onClick={() => setShowAddPeopleModal(false)}><X size={20} className="text-gray-400"/></button>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-4 rounded-xl mb-6">
+                              <div className="flex justify-between items-center mb-4">
+                                  <span className="text-gray-600 font-medium">当前人数</span>
+                                  <span className="text-gray-900 font-bold text-lg">{bookingData.peopleCount}人</span>
+                              </div>
+                              <div className="flex justify-between items-center border-t border-gray-200 pt-4">
+                                  <span className="text-gray-600 font-medium">新增人数</span>
+                                  <div className="flex items-center gap-3">
+                                      <button 
+                                          onClick={() => setAddPeopleCount(Math.max(1, addPeopleCount - 1))}
+                                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500"
+                                      >
+                                          -
+                                      </button>
+                                      <span className="font-bold text-xl w-6 text-center">{addPeopleCount}</span>
+                                      <button 
+                                          onClick={() => setAddPeopleCount(Math.min(3, addPeopleCount + 1))} // Cap at a reasonable +3
+                                          className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500"
+                                      >
+                                          +
+                                      </button>
+                                  </div>
+                              </div>
+                              <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-4 text-sm">
+                                  <span className="text-gray-500">需补差价 (¥98/人)</span>
+                                  <span className="text-red-500 font-bold text-lg">¥{addPeopleCount * 98}</span>
+                              </div>
+                          </div>
+                          
+                          <button 
+                              onClick={handleConfirmAddPeople}
+                              className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200"
+                          >
+                              支付并增加
+                          </button>
+                      </div>
+                  </div>
+              )}
           </div>
       );
   };
@@ -750,7 +1007,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const renderMySessions = () => {
     return (
         <div className="flex flex-col h-full bg-gray-50">
-             {/* Navbar */}
              <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-20">
                 <button onClick={() => setMineView('MENU')} className="p-1 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                     <ArrowLeft size={24} />
@@ -758,7 +1014,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 <h2 className="font-bold text-lg text-gray-800">我的场次</h2>
             </div>
 
-            {/* List */}
             <div className="p-4 space-y-4 pb-24">
                 {mySessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center pt-20 text-gray-400">
@@ -767,7 +1022,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     </div>
                 ) : (
                     mySessions.map(session => {
-                        // Priority: Explicit Status (RUNNING/COMPLETED) > Time Calculation
                         let status = session.status;
                         if (status !== 'RUNNING' && status !== 'COMPLETED') {
                              status = getSessionStatus(session.timeStr);
@@ -785,7 +1039,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
                         return (
                         <div key={session.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                            {/* Header Status */}
                             <div className={`px-4 py-2 flex justify-between items-center text-xs font-bold ${statusClass}`}>
                                 <span>{statusText}</span>
                                 {status === 'UPCOMING' && <span className="flex items-center gap-1"><Clock size={12}/> 请提前签到</span>}
@@ -837,7 +1090,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
     if (mineView === 'TICKETS') {
         return (
             <div className="flex flex-col h-full bg-gray-50">
-                {/* Navbar */}
                 <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-20">
                     <button onClick={() => setMineView('MENU')} className="p-1 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                         <ArrowLeft size={24} />
@@ -845,7 +1097,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     <h2 className="font-bold text-lg text-gray-800">我的票券</h2>
                 </div>
 
-                {/* Ticket List */}
                 <div className="p-4 space-y-4 pb-24">
                     {myTickets.length === 0 ? (
                         <div className="flex flex-col items-center justify-center pt-20 text-gray-400">
@@ -855,7 +1106,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     ) : (
                         myTickets.map(ticket => (
                             <div key={ticket.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 relative group">
-                                {/* Left Color Bar */}
                                 <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ticket.status === 'UNUSED' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
                                 
                                 <div className="p-4 pl-6 flex justify-between">
@@ -896,7 +1146,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                         </div>
                                     </div>
                                     
-                                    {/* Right Action Area */}
                                     <div className="flex flex-col items-center justify-center border-l border-dashed border-gray-200 pl-4 ml-2 gap-2">
                                         {ticket.status === 'UNUSED' ? (
                                             <>
@@ -914,7 +1163,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                         )}
                                     </div>
                                 </div>
-                                {/* Decorative Circles for ticket cutout effect */}
                                 <div className="absolute -top-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
                                 <div className="absolute -bottom-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
                             </div>
@@ -929,10 +1177,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
         return renderMySessions();
     }
 
-    // Default Menu View
     return (
         <div className="flex flex-col bg-gray-50 min-h-full">
-            {/* User Header */}
             <div className="bg-blue-600 pt-8 pb-16 px-6 text-white rounded-b-[2.5rem] relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
               <div className="relative z-10 flex items-center gap-4 mt-4">
@@ -946,7 +1192,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
               </div>
             </div>
 
-            {/* Menu Items */}
             <div className="px-4 -mt-8 relative z-10">
               <div className="bg-white rounded-xl shadow-lg shadow-blue-900/5 overflow-hidden mb-4">
                 <div 
@@ -1009,12 +1254,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
     );
   };
 
-  // --- STAFF ADMIN VIEWS ---
-  
   const renderAdminTickets = () => {
       return (
           <div className="flex flex-col h-full bg-gray-50">
-             {/* Sub Nav */}
              <div className="bg-white p-2 mx-4 mt-4 mb-2 rounded-lg flex shadow-sm border border-gray-100">
                  <button 
                      onClick={() => setTicketSubTab('GENERATE')}
@@ -1030,7 +1272,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                  </button>
              </div>
 
-             {/* Content */}
              <div className="flex-1 overflow-y-auto p-4 pb-20">
                  {ticketSubTab === 'GENERATE' ? (
                      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -1105,13 +1346,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   };
 
   const renderAdminControl = () => {
-    // Generate all slots for the selected day
-    const slots = generateTimeSlots(adminControlDate, true); // true for full day
-    const dates = getNextThreeDays(); // Reuse date list for filter
+    const slots = generateTimeSlots(adminControlDate, true); 
+    const dates = getNextThreeDays(); 
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
-            {/* Header / Date Filter */}
             <div className="bg-white p-4 sticky top-0 z-10 shadow-sm border-b border-gray-100">
                 <div className="flex overflow-x-auto gap-2 no-scrollbar">
                     {dates.map(date => (
@@ -1130,39 +1369,29 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 </div>
             </div>
 
-            {/* Slots List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
                 {slots.map((time, index) => {
-                    // Find if any user has booked this slot
                     const formattedDate = adminControlDate.replace('月', '.').replace('日', '');
                     const fullTimeStr = `${new Date().getFullYear()}.${formattedDate} ${time}`;
-                    // Simple matching: check if session.timeStr starts with our formatted string
-                    // session.timeStr format: "YYYY.MM.DD HH:mm-HH:mm"
                     
                     const bookedSessions = mySessions.filter(s => {
                          return s.timeStr.startsWith(fullTimeStr);
                     });
 
                     const isBooked = bookedSessions.length > 0;
-                    const session = bookedSessions[0]; // Assume 1 session per slot for simplicity here or list all
+                    const session = bookedSessions[0]; 
 
-                    // Determine status for "Transfer" button
-                    const isUpcoming = true; // Simplified. In real app check current time.
-                    
-                    // Check if transferred in vr_backstage_data (simplified check)
                     const backstageDataStr = localStorage.getItem('vr_backstage_data');
                     const isTransferred = session && backstageDataStr && backstageDataStr.includes(session.id);
 
                     return (
-                        <div key={time} className={`rounded-xl border flex overflow-hidden ${isBooked ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
-                            {/* Time Column */}
+                        <div key={time} id={`slot-${time}`} className={`rounded-xl border flex overflow-hidden ${isBooked ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
                             <div className={`w-20 flex items-center justify-center font-mono text-sm font-bold border-r border-dashed
                                 ${isBooked ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-gray-400 border-gray-200'}
                             `}>
                                 {time}
                             </div>
                             
-                            {/* Content */}
                             <div className="flex-1 p-3 flex justify-between items-center">
                                 {isBooked ? (
                                     <>
@@ -1176,7 +1405,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                             </div>
                                         </div>
                                         
-                                        {/* Action */}
                                         {isTransferred ? (
                                              <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded">已转入后厅</span>
                                         ) : (
@@ -1205,9 +1433,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
       return (
           <div className="flex flex-col h-full bg-gray-100">
-              {/* Custom Header for Data Page */}
               <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-20">
-                  <div className="w-8"></div> {/* Spacer to center title if needed, or just justify-between */}
+                  <div className="w-8"></div> 
                   <h2 className="text-lg font-bold text-gray-800">数据统计</h2>
                   <button className="flex flex-col items-center text-gray-500">
                       <Share size={18} />
@@ -1216,7 +1443,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                  {/* Filter Card */}
                   <div className="bg-white rounded-xl p-4 shadow-sm relative z-10">
                       <div className="mb-4">
                           <label className="text-sm font-bold text-gray-700 block mb-2">查询日期:</label>
@@ -1267,7 +1493,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                               <ChevronDown size={16} className={`text-blue-400 transition-transform ${showStoreOptions ? 'rotate-180' : ''}`}/>
                           </button>
                           
-                          {/* Store Dropdown */}
                           {showStoreOptions && (
                               <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95">
                                   {stores.map(store => (
@@ -1290,7 +1515,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                       </div>
                   </div>
 
-                  {/* Summary Stats */}
                   <div className="bg-white rounded-xl p-4 shadow-sm">
                        <div className="flex items-center gap-2 mb-4">
                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
@@ -1317,7 +1541,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                        </div>
                   </div>
 
-                  {/* Hotel Ticket Stats */}
                    <div className="bg-white rounded-xl p-4 shadow-sm">
                        <div className="flex items-center gap-2 mb-4">
                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
@@ -1404,7 +1627,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   const renderAdminView = () => {
       return (
           <div className="flex flex-col h-full bg-white relative">
-              {/* Top Bar for Admin - Hide on Data Tab to use custom header */}
               {adminTab !== 'DATA' && (
                   <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm border-b border-gray-100 sticky top-0 z-20">
                       <div className="font-black text-lg text-purple-700 italic">ADMIN</div>
@@ -1421,7 +1643,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   {adminTab === 'CONTROL' && renderAdminControl()}
               </div>
 
-              {/* Admin Bottom Nav */}
               <div className="h-16 bg-white border-t border-gray-200 flex justify-around items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-30">
                   <button 
                       onClick={() => setAdminTab('TICKETS')}
@@ -1456,7 +1677,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       )
   };
 
-  // Main Render Logic
   if (isAdminView) {
       return renderAdminView();
   }
@@ -1464,7 +1684,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   return (
     <div className="flex flex-col h-full bg-white relative">
       
-      {/* View Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
         {bookingStep === 'BASIC' && renderBookingBasic()}
         {bookingStep === 'TICKETS' && renderBookingTickets()}
@@ -1473,7 +1692,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
         {bookingStep === 'NONE' && (
             activeTab === 'HOME' ? (
             <div className="flex flex-col">
-                {/* Header Image with Location Overlay */}
                 <div className="relative h-64 w-full bg-gray-200">
                 <img 
                     src="https://images.unsplash.com/photo-1596701062351-8c2c14d1fdd0?q=80&w=800&auto=format&fit=crop" 
@@ -1481,7 +1699,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     className="w-full h-full object-cover"
                 />
                 
-                {/* Manage Button (STAFF ONLY) */}
                 {userType === 'STAFF' && (
                     <div className="absolute top-10 right-4 z-20">
                         <button 
@@ -1494,7 +1711,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     </div>
                 )}
 
-                {/* Location Pill */}
                 <div className="absolute top-10 left-4 z-10">
                     <div className="bg-white/95 backdrop-blur-sm pl-3 pr-4 py-2 rounded-full flex items-center gap-1 shadow-sm border border-gray-100">
                         <MapPin size={16} className="text-blue-500 fill-blue-500" />
@@ -1504,11 +1720,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 </div>
                 </div>
 
-                {/* Main Action Cards (Overlapping) */}
                 <div className="px-4 -mt-10 relative z-10">
                 <div className="bg-white rounded-2xl shadow-xl p-4 border border-white">
                     <div className="grid grid-cols-2 gap-3">
-                        {/* Booking Card */}
                         <div 
                             onClick={handleStartBooking}
                             className="bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-blue-200 cursor-pointer group hover:scale-[1.02] transition-transform"
@@ -1520,13 +1734,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                     预定
                                 </button>
                             </div>
-                            {/* Decorative background element */}
                             <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12">
                                 <img src="https://cdn-icons-png.flaticon.com/512/2855/2855260.png" alt="VR" className="w-20 h-20 invert" />
                             </div>
                         </div>
 
-                        {/* Redemption Card */}
                         <div className="bg-gradient-to-br from-orange-400 to-red-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-orange-200 group cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => setShowRedeemModal(true)}>
                             <div className="relative z-10 flex flex-col h-full justify-between items-start">
                                 <div className="font-bold text-lg leading-tight">团购兑换</div>
@@ -1535,7 +1747,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                                     兑换
                                 </button>
                             </div>
-                            {/* Decorative background element */}
                             <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12 group-hover:scale-110 transition-transform duration-500">
                                 <Gift size={64} />
                             </div>
@@ -1544,14 +1755,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 </div>
                 </div>
 
-                {/* Recent Reservation Section */}
                 {(() => {
-                    // Filter for upcoming sessions logic
                     const upcomingSessions = mySessions.filter(s => {
                         if (s.status === 'RUNNING' || s.status === 'COMPLETED') return false;
                         return getSessionStatus(s.timeStr) === 'UPCOMING';
                     });
-                    const latestSession = upcomingSessions[0]; // Assuming ordered by newest
+                    const latestSession = upcomingSessions[0]; 
                     
                     if (latestSession) {
                         return (
@@ -1591,7 +1800,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     return null;
                 })()}
 
-                {/* Extra Content */}
                 <div className="px-4 mt-6 mb-4">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="font-bold text-gray-800 text-lg">热门活动</h3>
@@ -1617,7 +1825,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
         )}
       </div>
 
-      {/* Custom Bottom Tab Bar - Hide when in booking flow */}
       {bookingStep === 'NONE' && (
           <div className="absolute bottom-0 w-full h-20 bg-white border-t border-gray-100 flex justify-between items-end px-12 pb-2 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
             <button 
@@ -1628,7 +1835,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
             <span className="text-[10px] font-bold">首页</span>
             </button>
 
-            {/* Center Floating Button */}
             <div className="absolute left-1/2 transform -translate-x-1/2 -top-6 cursor-pointer group">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-lg shadow-blue-300 flex flex-col items-center justify-center text-white border-4 border-white group-hover:scale-105 transition-transform">
                     <ScanLine size={24} />
@@ -1646,7 +1852,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
         </div>
       )}
 
-      {/* Booking Notice Modal */}
       {showBookingNotice && (
           <div className="absolute inset-0 z-[70] flex items-center justify-center px-6">
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setShowBookingNotice(false)} />
@@ -1694,14 +1899,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           </div>
       )}
 
-      {/* Redemption Modal (Existing) */}
       {showRedeemModal && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center px-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setShowRedeemModal(false)} />
           
           <div className="relative w-full bg-gradient-to-b from-[#FFF5E6] via-white to-white rounded-[2rem] p-6 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
              
-             {/* Close Button */}
              <button 
                 onClick={() => setShowRedeemModal(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-20"
@@ -1709,11 +1912,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 <X size={20} />
              </button>
 
-             {/* Decorative Stars */}
              <Star className="absolute top-6 left-1/3 text-yellow-400 fill-yellow-400 animate-pulse" size={16} />
              <Star className="absolute top-4 right-1/3 text-yellow-400 fill-yellow-400 animate-bounce" style={{animationDuration: '3s'}} size={20} />
 
-             {/* Title Section */}
              <div className="text-center mt-4 mb-8 relative">
                 <h2 className="text-2xl font-black text-gray-900 italic transform -rotate-2 relative z-10" style={{ textShadow: '2px 2px 0px rgba(255,255,255,1)' }}>
                   兑换卡券
@@ -1723,17 +1924,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 </div>
              </div>
 
-             {/* Platforms */}
              <div className="flex justify-center items-center gap-4 mb-2">
-                {/* Meituan */}
                 <div className="w-12 h-12 rounded-full bg-[#FFC300] border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
                      <span className="font-bold text-xs text-black transform -rotate-12">美团</span>
                 </div>
-                {/* Dianping (simulated) */}
                 <div className="w-12 h-12 rounded-full bg-[#FF6600] border-2 border-white shadow-md flex items-center justify-center text-white">
                      <User size={20} strokeWidth={2.5} />
                 </div>
-                {/* Tiktok (simulated) */}
                 <div className="w-12 h-12 rounded-full bg-black border-2 border-white shadow-md flex items-center justify-center text-white relative overflow-hidden">
                     <Music size={20} className="relative z-10" />
                     <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/50 to-red-500/50 mix-blend-screen"></div>
@@ -1742,7 +1939,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
              
              <p className="text-center text-xs text-gray-500 font-medium mb-8">团购自动验券</p>
 
-             {/* Input */}
              <div className="bg-[#F5F5F5] rounded-xl flex items-center px-4 py-3 mb-8 border border-transparent focus-within:border-orange-200 transition-colors">
                 <input 
                     type="text" 
@@ -1754,7 +1950,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 <ScanLine className="text-gray-400" size={20} />
              </div>
 
-             {/* Button */}
              <button 
                 onClick={handleRedeem}
                 className="w-full bg-gradient-to-r from-[#FF8C69] to-[#FF4D4D] text-white font-bold text-lg py-3.5 rounded-full shadow-[0_8px_20px_-6px_rgba(255,87,87,0.5)] active:scale-95 transition-transform relative overflow-hidden group"
@@ -1763,7 +1958,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                 兑换
              </button>
 
-             {/* Bottom Text */}
              <div className="mt-8 text-center space-y-2">
                 <p className="text-xs font-bold text-gray-700">票券使用期限为30天，请尽快使用奥~</p>
                 <div className="text-[10px] text-gray-400 leading-tight px-2 scale-90">
