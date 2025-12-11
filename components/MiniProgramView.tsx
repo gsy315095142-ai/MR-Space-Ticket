@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle } from 'lucide-react';
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
@@ -19,8 +19,10 @@ interface SessionItem {
     timeStr: string;
     location: string;
     peopleCount: number;
-    status: 'UPCOMING' | 'COMPLETED';
+    status: 'UPCOMING' | 'RUNNING' | 'COMPLETED';
     image?: string;
+    transferredToBackstage?: boolean;
+    userName?: string;
 }
 
 interface GeneratedTicketItem {
@@ -33,7 +35,7 @@ interface GeneratedTicketItem {
 }
 
 type BookingStep = 'NONE' | 'BASIC' | 'TICKETS' | 'SUCCESS';
-type AdminTab = 'TICKETS' | 'DATA' | 'IDENTITY';
+type AdminTab = 'TICKETS' | 'DATA' | 'IDENTITY' | 'CONTROL';
 type TicketSubTab = 'GENERATE' | 'LIST';
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
@@ -50,6 +52,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
   ]);
   const [genSelectedType, setGenSelectedType] = useState(1); // 1, 2, 3, 4 people
   const [adminDateFilter, setAdminDateFilter] = useState('今日');
+  const [adminControlDate, setAdminControlDate] = useState(''); // Init in useEffect
 
   // Modal States
   const [showRedeemModal, setShowRedeemModal] = useState(false);
@@ -61,45 +64,60 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
 
   // Data States
   const [myTickets, setMyTickets] = useState<TicketItem[]>([]);
-  const [mySessions, setMySessions] = useState<SessionItem[]>([
-      {
-          id: 's-1',
-          timeStr: '2025.06.17 15:00-15:30',
-          location: '北京·ClubMedJoyview延庆度假村',
-          peopleCount: 3,
-          status: 'UPCOMING'
-      }
-  ]);
+  const [mySessions, setMySessions] = useState<SessionItem[]>([]);
 
-  // Load Tickets from LocalStorage on Mount (for GUEST)
+  // Helper to get formatted date string: "10月25日"
+  const formatDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+
+  // Init Data
   useEffect(() => {
-      const storedTickets = localStorage.getItem('vr_user_tickets');
-      if (storedTickets) {
-          setMyTickets(JSON.parse(storedTickets));
-      } else {
-          // Default initial tickets if empty
-          setMyTickets([
-            {
-              id: 'init-1',
-              name: '单人体验券',
-              peopleCount: 1,
-              storeName: '北京·ClubMedJoyview延庆度假村',
-              validUntil: '2024-12-31',
-              status: 'EXPIRED'
-            }
-          ]);
-      }
+    setAdminControlDate(formatDate(new Date()));
 
-      // Listen for ticket updates from other views (e.g. Chat)
-      const handleStorageChange = () => {
-          const updated = localStorage.getItem('vr_user_tickets');
-          if (updated) {
-              setMyTickets(JSON.parse(updated));
-          }
-      };
+    // Load Tickets
+    const storedTickets = localStorage.getItem('vr_user_tickets');
+    if (storedTickets) {
+        setMyTickets(JSON.parse(storedTickets));
+    } else {
+        setMyTickets([
+        {
+            id: 'init-1',
+            name: '单人体验券',
+            peopleCount: 1,
+            storeName: '北京·ClubMedJoyview延庆度假村',
+            validUntil: '2024-12-31',
+            status: 'EXPIRED'
+        }
+        ]);
+    }
 
-      window.addEventListener('storage_update', handleStorageChange);
-      return () => window.removeEventListener('storage_update', handleStorageChange);
+    // Load Sessions
+    const storedSessions = localStorage.getItem('vr_sessions');
+    if (storedSessions) {
+        setMySessions(JSON.parse(storedSessions));
+    } else {
+        const initialSession: SessionItem = {
+            id: 's-1',
+            timeStr: '2025.06.17 15:00-15:30',
+            location: '北京·ClubMedJoyview延庆度假村',
+            peopleCount: 3,
+            status: 'UPCOMING',
+            userName: '初始用户'
+        };
+        setMySessions([initialSession]);
+        // Don't save initial immediately to avoid overwriting if empty
+    }
+
+    // Listen for updates
+    const handleStorageChange = () => {
+        const updatedTickets = localStorage.getItem('vr_user_tickets');
+        if (updatedTickets) setMyTickets(JSON.parse(updatedTickets));
+        
+        const updatedSessions = localStorage.getItem('vr_sessions');
+        if (updatedSessions) setMySessions(JSON.parse(updatedSessions));
+    };
+
+    window.addEventListener('storage_update', handleStorageChange);
+    return () => window.removeEventListener('storage_update', handleStorageChange);
   }, []);
 
   // Sync myTickets changes to localStorage
@@ -109,8 +127,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       }
   }, [myTickets]);
 
-  // Helper to get formatted date string: "10月25日"
-  const formatDate = (date: Date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+  // Sync mySessions changes to localStorage
+  useEffect(() => {
+    if (mySessions.length > 0) {
+        localStorage.setItem('vr_sessions', JSON.stringify(mySessions));
+    }
+  }, [mySessions]);
+
 
   // Booking Flow State
   const [bookingData, setBookingData] = useState({
@@ -239,12 +262,17 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
           timeStr: `${year}.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
           location: '北京·ClubMedJoyview延庆度假村',
           peopleCount: bookingData.peopleCount,
-          status: 'UPCOMING'
+          status: 'UPCOMING',
+          userName: '体验用户'
       };
+      // Note: mySessions will trigger useEffect to save to localStorage 'vr_sessions'
       setMySessions([newSession, ...mySessions]);
 
       // 3. Show Success
       setBookingStep('SUCCESS');
+      
+      // 4. Force Notify for other views (Backstage/Control)
+      setTimeout(() => window.dispatchEvent(new Event('storage_update')), 100);
   };
 
   const handleGenerateTicket = () => {
@@ -287,9 +315,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       const storedMsgs = localStorage.getItem(storageKey);
       let chatHistory = storedMsgs ? JSON.parse(storedMsgs) : [];
       
-      // If chat is empty for some reason, we might want to seed it, 
-      // but let's just append. 
-      // Note: We need to match the structure in ChatView.tsx
       const nowTime = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
       
       const newMessage = {
@@ -310,9 +335,24 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       
       // 4. Notify App for Badge
       window.dispatchEvent(new Event('new_chat_message'));
+  };
+
+  const handleTransferToBackstage = (session: SessionItem) => {
+      const key = 'vr_backstage_data';
+      const stored = localStorage.getItem(key);
+      const backstageData: SessionItem[] = stored ? JSON.parse(stored) : [];
+
+      if (backstageData.some(s => s.id === session.id)) {
+          alert('该场次已转入后厅');
+          return;
+      }
+
+      const updatedData = [session, ...backstageData];
+      localStorage.setItem(key, JSON.stringify(updatedData));
       
-      // Optional: Show a toast or feedback for Staff
-      // alert('票券已生成并发送给用户');
+      // Update local transferred state if we were tracking it properly, but here we can just alert
+      alert('已转入后厅');
+      window.dispatchEvent(new Event('storage_update'));
   };
 
   // --- Helper Generators ---
@@ -328,7 +368,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       return dates;
   };
 
-  const generateTimeSlots = (selectedDateStr: string) => {
+  const generateTimeSlots = (selectedDateStr: string, fullDay = false) => {
       const slots = [];
       const now = new Date();
       const isToday = selectedDateStr === formatDate(now);
@@ -336,8 +376,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       let startH = 10;
       let startM = 0;
 
-      if (isToday) {
-          // If today, start from current time rounded up to next 10 mins
+      if (!fullDay && isToday) {
+          // If today and for booking suggestion, start from current time
           startH = now.getHours();
           startM = Math.ceil(now.getMinutes() / 10) * 10;
           if (startM === 60) {
@@ -349,8 +389,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       let currentH = startH;
       let currentM = startM;
 
-      // Only show up to 4 slots, max time 22:00
-      while (slots.length < 4) {
+      // For Control View (fullDay=true), we want all slots 10:00-22:00
+      // For Booking View (fullDay=false), we want next 4 slots
+      const maxSlots = fullDay ? 100 : 4; 
+
+      while (slots.length < maxSlots) {
           if (currentH > 22 || (currentH === 22 && currentM > 0)) break; // Cutoff at 22:00
 
           const timeStr = `${currentH.toString().padStart(2, '0')}:${currentM.toString().padStart(2, '0')}`;
@@ -513,7 +556,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-blue-100">
                       <div className="flex justify-between items-center mb-2">
                           <span className="text-gray-500 text-sm">预约时间</span>
-                          <span className="font-bold text-gray-800">{year}.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
+                          <span className="font-bold text-gray-800">{year}.{bookingData.date.replace('月','.').replace('日','')} {bookingData.timeSlot}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-gray-500 text-sm">预约人数</span>
@@ -613,7 +656,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                        </div>
                        <div className="flex justify-between">
                            <span className="text-gray-400 text-sm">预约时间</span>
-                           <span className="font-bold text-gray-800">{year}.{bookingData.date.replace(/[年月日]/g, '.')} {bookingData.timeSlot}</span>
+                           <span className="font-bold text-gray-800">{year}.{bookingData.date.replace('月','.').replace('日','')} {bookingData.timeSlot}</span>
                        </div>
                        <div className="flex justify-between">
                            <span className="text-gray-400 text-sm">预约人数</span>
@@ -667,20 +710,39 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                     </div>
                 ) : (
                     mySessions.map(session => {
-                        const status = getSessionStatus(session.timeStr);
+                        // Priority: Explicit Status (RUNNING/COMPLETED) > Time Calculation
+                        let status = session.status;
+                        if (status !== 'RUNNING' && status !== 'COMPLETED') {
+                             status = getSessionStatus(session.timeStr);
+                        }
+
+                        let statusText = '待参加';
+                        let statusClass = 'bg-blue-50 text-blue-600';
+                        if (status === 'RUNNING') {
+                            statusText = '已开始';
+                            statusClass = 'bg-green-50 text-green-600 animate-pulse';
+                        } else if (status === 'COMPLETED') {
+                            statusText = '已结束';
+                            statusClass = 'bg-gray-100 text-gray-500';
+                        }
+
                         return (
                         <div key={session.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                             {/* Header Status */}
-                            <div className={`px-4 py-2 flex justify-between items-center text-xs font-bold
-                                ${status === 'UPCOMING' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}
-                            `}>
-                                <span>{status === 'UPCOMING' ? '待参加' : '已结束'}</span>
+                            <div className={`px-4 py-2 flex justify-between items-center text-xs font-bold ${statusClass}`}>
+                                <span>{statusText}</span>
                                 {status === 'UPCOMING' && <span className="flex items-center gap-1"><Clock size={12}/> 请提前签到</span>}
+                                {status === 'RUNNING' && <span className="flex items-center gap-1"><PlayCircle size={12}/> 进行中</span>}
                             </div>
                             
                             <div className="p-4 flex gap-4">
-                                <div className="w-20 h-20 bg-gray-200 rounded-lg shrink-0 overflow-hidden">
+                                <div className="w-20 h-20 bg-gray-200 rounded-lg shrink-0 overflow-hidden relative">
                                      <img src="https://images.unsplash.com/photo-1622979135228-5b1ed30259a4?q=80&w=200&auto=format&fit=crop" className="w-full h-full object-cover" alt="VR" />
+                                     {status === 'RUNNING' && (
+                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                             <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+                                         </div>
+                                     )}
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <div className="font-bold text-gray-800 text-lg">VR大空间体验</div>
@@ -985,6 +1047,102 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       );
   };
 
+  const renderAdminControl = () => {
+    // Generate all slots for the selected day
+    const slots = generateTimeSlots(adminControlDate, true); // true for full day
+    const dates = getNextThreeDays(); // Reuse date list for filter
+
+    return (
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* Header / Date Filter */}
+            <div className="bg-white p-4 sticky top-0 z-10 shadow-sm border-b border-gray-100">
+                <div className="flex overflow-x-auto gap-2 no-scrollbar">
+                    {dates.map(date => (
+                        <button
+                            key={date}
+                            onClick={() => setAdminControlDate(date)}
+                            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border
+                                ${adminControlDate === date 
+                                    ? 'bg-purple-600 text-white border-purple-600' 
+                                    : 'bg-white text-gray-500 border-gray-200'}
+                            `}
+                        >
+                            {date}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Slots List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
+                {slots.map((time, index) => {
+                    // Find if any user has booked this slot
+                    const formattedDate = adminControlDate.replace('月', '.').replace('日', '');
+                    const fullTimeStr = `${new Date().getFullYear()}.${formattedDate} ${time}`;
+                    // Simple matching: check if session.timeStr starts with our formatted string
+                    // session.timeStr format: "YYYY.MM.DD HH:mm-HH:mm"
+                    
+                    const bookedSessions = mySessions.filter(s => {
+                         return s.timeStr.startsWith(fullTimeStr);
+                    });
+
+                    const isBooked = bookedSessions.length > 0;
+                    const session = bookedSessions[0]; // Assume 1 session per slot for simplicity here or list all
+
+                    // Determine status for "Transfer" button
+                    const isUpcoming = true; // Simplified. In real app check current time.
+                    
+                    // Check if transferred in vr_backstage_data (simplified check)
+                    const backstageDataStr = localStorage.getItem('vr_backstage_data');
+                    const isTransferred = session && backstageDataStr && backstageDataStr.includes(session.id);
+
+                    return (
+                        <div key={time} className={`rounded-xl border flex overflow-hidden ${isBooked ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
+                            {/* Time Column */}
+                            <div className={`w-20 flex items-center justify-center font-mono text-sm font-bold border-r border-dashed
+                                ${isBooked ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-gray-400 border-gray-200'}
+                            `}>
+                                {time}
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="flex-1 p-3 flex justify-between items-center">
+                                {isBooked ? (
+                                    <>
+                                        <div>
+                                            <div className="font-bold text-gray-800 text-sm">VR沉浸体验</div>
+                                            <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                                                <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
+                                                    <User size={10} /> {session.peopleCount}人
+                                                </span>
+                                                <span className="text-[10px]">{session.userName || '用户'}已预约</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Action */}
+                                        {isTransferred ? (
+                                             <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded">已转入后厅</span>
+                                        ) : (
+                                            <button 
+                                                onClick={() => handleTransferToBackstage(session)}
+                                                className="bg-purple-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm active:scale-95 transition-all"
+                                            >
+                                                转入后厅
+                                            </button>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span className="text-xs text-gray-300">空闲场次</span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+  };
+
   const renderAdminData = () => {
       return (
           <div className="flex flex-col h-full bg-gray-50 p-4 pb-20 overflow-y-auto">
@@ -1137,27 +1295,35 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
                   {adminTab === 'TICKETS' && renderAdminTickets()}
                   {adminTab === 'DATA' && renderAdminData()}
                   {adminTab === 'IDENTITY' && renderAdminIdentity()}
+                  {adminTab === 'CONTROL' && renderAdminControl()}
               </div>
 
               {/* Admin Bottom Nav */}
-              <div className="h-16 bg-white border-t border-gray-200 flex justify-around items-center px-6 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-30">
+              <div className="h-16 bg-white border-t border-gray-200 flex justify-around items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-30">
                   <button 
                       onClick={() => setAdminTab('TICKETS')}
-                      className={`flex flex-col items-center gap-1 ${adminTab === 'TICKETS' ? 'text-purple-600' : 'text-gray-400'}`}
+                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'TICKETS' ? 'text-purple-600' : 'text-gray-400'}`}
                   >
                       <Ticket size={22} strokeWidth={adminTab === 'TICKETS' ? 2.5 : 2} />
                       <span className="text-[10px] font-bold">票券</span>
                   </button>
+                   <button 
+                      onClick={() => setAdminTab('CONTROL')}
+                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'CONTROL' ? 'text-purple-600' : 'text-gray-400'}`}
+                  >
+                      <Command size={22} strokeWidth={adminTab === 'CONTROL' ? 2.5 : 2} />
+                      <span className="text-[10px] font-bold">中控</span>
+                  </button>
                   <button 
                       onClick={() => setAdminTab('DATA')}
-                      className={`flex flex-col items-center gap-1 ${adminTab === 'DATA' ? 'text-purple-600' : 'text-gray-400'}`}
+                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'DATA' ? 'text-purple-600' : 'text-gray-400'}`}
                   >
                       <PieChart size={22} strokeWidth={adminTab === 'DATA' ? 2.5 : 2} />
                       <span className="text-[10px] font-bold">数据</span>
                   </button>
                   <button 
                       onClick={() => setAdminTab('IDENTITY')}
-                      className={`flex flex-col items-center gap-1 ${adminTab === 'IDENTITY' ? 'text-purple-600' : 'text-gray-400'}`}
+                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'IDENTITY' ? 'text-purple-600' : 'text-gray-400'}`}
                   >
                       <User size={22} strokeWidth={adminTab === 'IDENTITY' ? 2.5 : 2} />
                       <span className="text-[10px] font-bold">身份</span>
