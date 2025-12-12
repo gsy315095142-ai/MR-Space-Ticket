@@ -3,6 +3,7 @@ import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clo
 
 interface MiniProgramViewProps {
   userType: 'STAFF' | 'GUEST';
+  resetTrigger?: number;
 }
 
 interface TicketItem {
@@ -38,7 +39,7 @@ type BookingStep = 'NONE' | 'BASIC' | 'TICKETS' | 'SUCCESS';
 type AdminTab = 'TICKETS' | 'DATA' | 'IDENTITY' | 'CONTROL';
 type TicketSubTab = 'GENERATE' | 'LIST';
 
-const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
+const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigger }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
   
   // Admin Mode States
@@ -91,6 +92,26 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType }) => {
       const d = date.getDate().toString().padStart(2, '0');
       return `${y}-${m}-${d}`;
   };
+
+  // Reset to Home when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger !== undefined) {
+        setActiveTab('HOME');
+        setMineView('MENU');
+        setBookingStep('NONE');
+        
+        // Close Modals
+        setShowRedeemModal(false);
+        setShowBookingNotice(false);
+        setShowRescheduleModal(false);
+        setShowAddPeopleModal(false);
+
+        // If Guest, ensure not in admin view
+        if (userType === 'GUEST') {
+            setIsAdminView(false);
+        }
+    }
+  }, [resetTrigger, userType]);
 
   // Init Data
   useEffect(() => {

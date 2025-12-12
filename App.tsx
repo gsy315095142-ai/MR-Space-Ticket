@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>(ViewType.STAFF_FRONT_STORE);
+  const [guestMiniProgramResetTrigger, setGuestMiniProgramResetTrigger] = useState(0);
   const [badges, setBadges] = useState<Record<string, boolean>>({
     [ViewType.GUEST_CHAT]: false,
     [ViewType.GUEST_MINI_PROGRAM]: false,
@@ -58,6 +59,9 @@ const App: React.FC = () => {
   }, [currentView]);
 
   const handleNavClick = (view: ViewType) => {
+      if (view === ViewType.GUEST_MINI_PROGRAM) {
+          setGuestMiniProgramResetTrigger(prev => prev + 1);
+      }
       setCurrentView(view);
       setBadges(prev => ({ ...prev, [view]: false }));
   };
@@ -65,13 +69,13 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case ViewType.STAFF_FRONT_STORE:
-        return <MiniProgramView userType="STAFF" />;
+        return <MiniProgramView key="staff-front-store" userType="STAFF" />;
       case ViewType.STAFF_BACKSTAGE:
-        return <BackstageView />;
+        return <BackstageView key="staff-backstage" />;
       case ViewType.GUEST_CHAT:
-        return <ChatView />;
+        return <ChatView key="guest-chat" />;
       case ViewType.GUEST_MINI_PROGRAM:
-        return <MiniProgramView userType="GUEST" />;
+        return <MiniProgramView key="guest-mini-program" userType="GUEST" resetTrigger={guestMiniProgramResetTrigger} />;
       default:
         return null;
     }
