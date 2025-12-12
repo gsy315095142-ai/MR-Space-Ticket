@@ -227,9 +227,19 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         
         // Short delay to ensure DOM is rendered
         setTimeout(() => {
+            const container = document.getElementById('admin-control-list');
             const element = document.getElementById(`slot-${timeStr}`);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            if (container && element) {
+                // Manually calculate scroll position to avoid scrolling the entire page
+                const top = element.offsetTop;
+                const containerHeight = container.clientHeight;
+                const elementHeight = element.clientHeight;
+                
+                container.scrollTo({
+                    top: top - containerHeight / 2 + elementHeight / 2,
+                    behavior: 'smooth'
+                });
             }
         }, 300);
     }
@@ -1281,7 +1291,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
+            <div id="admin-control-list" className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 relative">
                 {slots.map((time, index) => {
                     const formattedDate = adminControlDate.replace('月', '.').replace('日', '');
                     const fullTimeStr = `${new Date().getFullYear()}.${formattedDate} ${time}`;
