@@ -61,6 +61,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [dataSelectedStore, setDataSelectedStore] = useState('全部');
   const [showStoreOptions, setShowStoreOptions] = useState(false);
 
+  // Home Page Store Selection State
+  const [homeStore, setHomeStore] = useState('北京·ClubMedJoyview延庆度假村');
+  const [showHomeStoreSelect, setShowHomeStoreSelect] = useState(false);
+  const storeOptions = ['北京·ClubMedJoyview延庆度假村', '秦皇岛·阿那亚店', '成都·太古里店', '上海·新天地店'];
+
   // Modal States
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [couponCode, setCouponCode] = useState('');
@@ -105,6 +110,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         setShowBookingNotice(false);
         setShowRescheduleModal(false);
         setShowAddPeopleModal(false);
+        setShowHomeStoreSelect(false);
 
         // If Guest, ensure not in admin view
         if (userType === 'GUEST') {
@@ -303,7 +309,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         id: Date.now().toString(),
         name: ticketConfig.name,
         peopleCount: ticketConfig.count,
-        storeName: '北京·ClubMedJoyview延庆度假村',
+        storeName: homeStore,
         validUntil: validUntilStr,
         status: 'UNUSED'
     };
@@ -372,7 +378,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       const newSession: SessionItem = {
           id: Date.now().toString(),
           timeStr: `${year}.${bookingData.date.replace('月','.').replace('日','')} ${fullTimeStr}`, 
-          location: '北京·ClubMedJoyview延庆度假村',
+          location: homeStore,
           peopleCount: bookingData.peopleCount,
           status: 'UPCOMING',
           userName: '体验用户',
@@ -422,7 +428,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           id: `t-${code}`,
           name: ticketName,
           peopleCount: genSelectedType,
-          storeName: '北京·ClubMedJoyview延庆度假村',
+          storeName: homeStore,
           validUntil: validUntilStr,
           status: 'UNUSED'
       };
@@ -637,7 +643,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                       <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">体验地点</h3>
                       <div className="flex items-center gap-2 text-gray-800 font-medium bg-gray-50 p-3 rounded-lg border border-gray-100">
                           <MapPin size={18} className="text-blue-500" />
-                          北京·ClubMedJoyview延庆度假村
+                          {homeStore}
                       </div>
                   </div>
 
@@ -874,7 +880,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                       <div className="p-5 relative">
                           <div className="flex justify-between items-start mb-6">
                               <div>
-                                  <div className="text-gray-900 font-bold text-sm">北京·ClubMedJoyview延庆度假村</div>
+                                  <div className="text-gray-900 font-bold text-sm">{homeStore}</div>
                                   <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
                                       <MapPin size={12} />
                                       <span>3L梦幻厅</span>
@@ -1175,7 +1181,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                 <div className="relative">
                                     <button 
                                         onClick={() => setShowStoreOptions(!showStoreOptions)}
-                                        className="bg-gray-50 w-full py-2 px-3 rounded-lg text-sm text-gray-500 flex justify-between items-center"
+                                        className="bg-gray-50 w-full py-2 px-3 rounded-lg text-sm text-gray-600 flex justify-between items-center"
                                     >
                                         <span>{dataSelectedStore}</span> 
                                         <ChevronDown size={16} className={`text-blue-400 transition-transform ${showStoreOptions ? 'rotate-180' : ''}`}/>
@@ -1802,13 +1808,49 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
         {activeTab === 'HOME' ? (
           <div className="animate-in fade-in duration-500">
-            <div className="relative h-64 w-full">
+            <div className="relative h-72 w-full">
               <img
                 src="https://images.unsplash.com/photo-1626379953822-baec19c3accd?q=80&w=1000&auto=format&fit=crop"
                 className="w-full h-full object-cover"
                 alt="Banner"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+              
+              {/* Top Header Store Selection */}
+              <div className="absolute top-4 left-4 z-20">
+                  <div className="relative">
+                      <button
+                        onClick={() => setShowHomeStoreSelect(!showHomeStoreSelect)}
+                        className="flex items-center gap-1 text-white bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 active:scale-95 transition-all"
+                      >
+                        <MapPin size={14} />
+                        <span className="text-xs font-bold max-w-[180px] truncate">{homeStore}</span>
+                        <ChevronDown size={14} className={`transition-transform duration-300 ${showHomeStoreSelect ? 'rotate-180' : ''}`}/>
+                      </button>
+
+                      {/* Dropdown */}
+                      {showHomeStoreSelect && (
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 origin-top-left border border-gray-100">
+                          {storeOptions.map(store => (
+                            <button
+                              key={store}
+                              onClick={() => {
+                                setHomeStore(store);
+                                setShowHomeStoreSelect(false);
+                              }}
+                              className={`w-full text-left px-4 py-3 text-xs border-b border-gray-50 last:border-0 hover:bg-gray-50 flex items-center justify-between
+                                ${homeStore === store ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'}
+                              `}
+                            >
+                              {store}
+                              {homeStore === store && <CheckCircle size={14} />}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+              </div>
+
               <div className="absolute bottom-4 left-4 text-white">
                 <div className="text-xs font-medium bg-orange-500/80 backdrop-blur-sm px-2 py-0.5 rounded inline-block mb-2">
                   沉浸式体验
@@ -1824,7 +1866,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
             <div className="p-4 relative -mt-6">
               <div className="bg-white rounded-xl shadow-lg p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-gray-800">北京·ClubMedJoyview...</h3>
+                  <h3 className="font-bold text-gray-800 text-sm">{homeStore}</h3>
                   <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                     <Clock size={12} /> 营业中 10:00-22:00
                   </div>
