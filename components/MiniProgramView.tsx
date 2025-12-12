@@ -1773,7 +1773,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                      <div className="text-xs bg-slate-800 px-2 py-1 rounded border border-slate-700">
                         {adminTab === 'TICKETS' && '票券管理'}
                         {adminTab === 'DATA' && '数据看板'}
-                        {adminTab === 'IDENTITY' && '核销验证'}
+                        {adminTab === 'IDENTITY' && '身份信息'}
                         {adminTab === 'CONTROL' && '中控管理'}
                      </div>
                  </div>
@@ -1802,7 +1802,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                     </button>
                      <button onClick={() => setAdminTab('IDENTITY')} className={`flex flex-col items-center gap-1 ${adminTab === 'IDENTITY' ? 'text-blue-600' : ''}`}>
                         <ScanLine size={20} />
-                        核销
+                        身份
                     </button>
                  </div>
             </div>
