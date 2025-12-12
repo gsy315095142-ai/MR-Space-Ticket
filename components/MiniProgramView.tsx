@@ -281,6 +281,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       setSelectedTicketIds([]);
   };
 
+  const handleUseTicket = () => {
+      setActiveTab('HOME');
+      setMineView('MENU');
+      handleStartBooking();
+  };
+
   const handleBasicInfoSubmit = () => {
       if (!bookingData.timeSlot) {
           alert("请选择场次时间");
@@ -1025,256 +1031,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       );
   };
 
-  const renderMySessions = () => {
-    return (
-        <div className="flex flex-col h-full bg-gray-50">
-             <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-20">
-                <button onClick={() => setMineView('MENU')} className="p-1 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                    <ArrowLeft size={24} />
-                </button>
-                <h2 className="font-bold text-lg text-gray-800">我的场次</h2>
-            </div>
-
-            <div className="p-4 space-y-4 pb-24">
-                {mySessions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center pt-20 text-gray-400">
-                        <CalendarDays size={48} className="mb-2 opacity-20" />
-                        <p>暂无预约场次</p>
-                    </div>
-                ) : (
-                    mySessions.map(session => {
-                        let status = session.status;
-                        if (status !== 'RUNNING' && status !== 'COMPLETED') {
-                             status = getSessionStatus(session.timeStr);
-                        }
-
-                        let statusText = '待参加';
-                        let statusClass = 'bg-blue-50 text-blue-600';
-                        if (status === 'RUNNING') {
-                            statusText = '已开始';
-                            statusClass = 'bg-green-50 text-green-600 animate-pulse';
-                        } else if (status === 'COMPLETED') {
-                            statusText = '已结束';
-                            statusClass = 'bg-gray-100 text-gray-500';
-                        }
-
-                        return (
-                        <div key={session.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-                            <div className={`px-4 py-2 flex justify-between items-center text-xs font-bold ${statusClass}`}>
-                                <span>{statusText}</span>
-                                {status === 'UPCOMING' && <span className="flex items-center gap-1"><Clock size={12}/> 请提前签到</span>}
-                                {status === 'RUNNING' && <span className="flex items-center gap-1"><PlayCircle size={12}/> 进行中</span>}
-                            </div>
-                            
-                            <div className="p-4 flex gap-4">
-                                <div className="w-20 h-20 bg-gray-200 rounded-lg shrink-0 overflow-hidden relative">
-                                     <img src="https://images.unsplash.com/photo-1622979135228-5b1ed30259a4?q=80&w=200&auto=format&fit=crop" className="w-full h-full object-cover" alt="VR" />
-                                     {status === 'RUNNING' && (
-                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                             <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-                                         </div>
-                                     )}
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                    <div className="font-bold text-gray-800 text-lg">VR大空间体验</div>
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                        <Clock size={12} /> {session.timeStr}
-                                    </div>
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                        <MapPin size={12} /> {session.location}
-                                    </div>
-                                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                                        <Users size={12} /> {session.peopleCount}人
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {status === 'UPCOMING' && (
-                                <div className="px-4 pb-4 flex justify-end gap-2">
-                                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                                        取消预约
-                                    </button>
-                                    <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-medium text-white hover:bg-blue-700 shadow-sm shadow-blue-200">
-                                        查看详情
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )})
-                )}
-            </div>
-        </div>
-    );
-  };
-
-  const renderMineContent = () => {
-    if (mineView === 'TICKETS') {
-        return (
-            <div className="flex flex-col h-full bg-gray-50">
-                <div className="bg-white px-4 py-4 flex items-center gap-4 shadow-sm sticky top-0 z-20">
-                    <button onClick={() => setMineView('MENU')} className="p-1 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <h2 className="font-bold text-lg text-gray-800">我的票券</h2>
-                </div>
-
-                <div className="p-4 space-y-4 pb-24">
-                    {myTickets.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center pt-20 text-gray-400">
-                            <Ticket size={48} className="mb-2 opacity-20" />
-                            <p>暂无可用票券</p>
-                        </div>
-                    ) : (
-                        myTickets.map(ticket => (
-                            <div key={ticket.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 relative group">
-                                <div className={`absolute top-0 bottom-0 left-0 w-1.5 ${ticket.status === 'UNUSED' ? 'bg-orange-500' : 'bg-gray-300'}`}></div>
-                                
-                                <div className="p-4 pl-6 flex justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className={`font-bold text-lg ${ticket.status === 'UNUSED' ? 'text-gray-800' : 'text-gray-400'}`}>
-                                                {ticket.name}
-                                            </h3>
-                                            {ticket.status === 'UNUSED' && (
-                                                <span className="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded border border-orange-200">
-                                                    未使用
-                                                </span>
-                                            )}
-                                            {ticket.status === 'USED' && (
-                                                <span className="bg-blue-100 text-blue-500 text-[10px] px-1.5 py-0.5 rounded">
-                                                    已使用
-                                                </span>
-                                            )}
-                                            {ticket.status === 'EXPIRED' && (
-                                                <span className="bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 rounded">
-                                                    已过期
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-gray-500 space-y-1 mt-2">
-                                            <div className="flex items-center gap-1">
-                                                <User size={12} />
-                                                <span>适用人数：{ticket.peopleCount}人</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <MapPin size={12} />
-                                                <span className="truncate max-w-[180px]">{ticket.storeName}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Clock size={12} />
-                                                <span>有效期至：{ticket.validUntil}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-col items-center justify-center border-l border-dashed border-gray-200 pl-4 ml-2 gap-2">
-                                        {ticket.status === 'UNUSED' ? (
-                                            <>
-                                                <div className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center">
-                                                    <ScanLine size={24} />
-                                                </div>
-                                                <span className="text-[10px] font-medium text-gray-500">去核销</span>
-                                            </>
-                                        ) : (
-                                            <div className="w-16 h-16 rounded-full border-2 border-gray-300 flex items-center justify-center transform -rotate-12 opacity-50">
-                                                <span className="font-bold text-xs text-gray-400">
-                                                    {ticket.status === 'USED' ? 'USED' : 'EXPIRED'}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="absolute -top-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
-                                <div className="absolute -bottom-2 right-[4.5rem] w-4 h-4 bg-gray-50 rounded-full shadow-inner"></div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-        );
-    }
-    
-    if (mineView === 'SESSIONS') {
-        return renderMySessions();
-    }
-
-    return (
-        <div className="flex flex-col bg-gray-50 min-h-full">
-            <div className="bg-blue-600 pt-8 pb-16 px-6 text-white rounded-b-[2.5rem] relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-              <div className="relative z-10 flex items-center gap-4 mt-4">
-                <div className="w-16 h-16 bg-white rounded-full border-4 border-white/20 flex items-center justify-center text-3xl shadow-lg">
-                   {userType === 'STAFF' ? '👩‍💼' : '👨‍🚀'}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{userType === 'STAFF' ? '工作人员' : '体验官 User'}</h2>
-                  <p className="text-blue-100 text-xs mt-1 opacity-80">ID: 8839201</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="px-4 -mt-8 relative z-10">
-              <div className="bg-white rounded-xl shadow-lg shadow-blue-900/5 overflow-hidden mb-4">
-                <div 
-                    onClick={() => setMineView('SESSIONS')}
-                    className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <Calendar size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的场次</span>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-                <div 
-                    onClick={() => setMineView('TICKETS')}
-                    className="p-5 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                      <Ticket size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的票券</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {myTickets.filter(t => t.status === 'UNUSED').length > 0 && (
-                        <span className="bg-red-500 text-white text-[10px] px-1.5 rounded-full">
-                            {myTickets.filter(t => t.status === 'UNUSED').length}
-                        </span>
-                    )}
-                    <ChevronRight size={18} className="text-gray-300" />
-                  </div>
-                </div>
-                <div className="p-5 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-colors">
-                      <Gift size={20} />
-                    </div>
-                    <span className="font-bold text-gray-800">我的优惠券</span>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300" />
-                </div>
-              </div>
-              
-              {userType === 'STAFF' && (
-                  <div className="bg-white rounded-xl shadow-sm p-4 mt-4">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">Staff Tools</h3>
-                       <div className="grid grid-cols-4 gap-4">
-                           <div className="flex flex-col items-center gap-1">
-                               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                   <ScanLine size={18} className="text-gray-600" />
-                               </div>
-                               <span className="text-[10px] text-gray-600">核销</span>
-                           </div>
-                       </div>
-                  </div>
-              )}
-            </div>
-        </div>
-    );
-  };
-
   const renderAdminTickets = () => {
       return (
           <div className="flex flex-col h-full bg-gray-50">
@@ -1333,7 +1089,99 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                          </div>
                      </div>
                  ) : (
-                     <div className="space-y-3">
+                    <div className="space-y-4">
+                        {/* Filter Card */}
+                        <div className="bg-white rounded-xl p-4 shadow-sm">
+                            <div className="mb-4">
+                                <div className="font-bold text-gray-800 mb-2 text-sm">查询日期:</div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="bg-gray-50 flex-1 py-2 px-3 rounded-lg flex justify-between items-center text-sm text-gray-500">
+                                        <span>{dataStartDate || '请选择日期'}</span>
+                                        <Calendar size={14} className="text-gray-400" />
+                                    </div>
+                                    <span className="text-gray-800 font-bold">至</span>
+                                    <div className="bg-gray-50 flex-1 py-2 px-3 rounded-lg flex justify-between items-center text-sm text-gray-500">
+                                        <span>{dataEndDate || '请选择日期'}</span>
+                                        <Calendar size={14} className="text-gray-400" />
+                                    </div>
+                                </div>
+                                <div className="flex justify-between gap-2">
+                                    {['昨天', '今天', '上个月', '本月'].map((label) => (
+                                        <button 
+                                                key={label} 
+                                                onClick={() => handleDateFilterClick(label)}
+                                                className={`flex-1 py-1.5 rounded-full text-xs transition-colors border ${dataActiveFilter === label ? 'bg-blue-500 text-white border-blue-500 shadow-sm shadow-blue-200' : 'bg-white text-blue-400 border-blue-200 hover:bg-blue-50'}`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div className="font-bold text-gray-800 mb-2 text-sm">查询酒店:</div>
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowStoreOptions(!showStoreOptions)}
+                                        className="bg-gray-50 w-full py-2 px-3 rounded-lg text-sm text-gray-500 flex justify-between items-center"
+                                    >
+                                        <span>{dataSelectedStore}</span> 
+                                        <ChevronDown size={16} className={`text-blue-400 transition-transform ${showStoreOptions ? 'rotate-180' : ''}`}/>
+                                    </button>
+                                    
+                                    {showStoreOptions && (
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                                            {['全部', '北京·ClubMedJoyview延庆度假村', '秦皇岛·阿那亚店', '成都·太古里店'].map(store => (
+                                                <div 
+                                                    key={store}
+                                                    onClick={() => {
+                                                        setDataSelectedStore(store);
+                                                        setShowStoreOptions(false);
+                                                    }}
+                                                    className={`px-4 py-3 text-sm border-b border-gray-50 hover:bg-blue-50 cursor-pointer flex justify-between items-center
+                                                        ${dataSelectedStore === store ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-600'}
+                                                    `}
+                                                >
+                                                    {store}
+                                                    {dataSelectedStore === store && <CheckCircle size={14} />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats Card */}
+                        <div className="bg-white rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                                    <h3 className="font-bold text-gray-800">票券统计</h3>
+                                </div>
+                                <ChevronDown size={16} className="text-gray-400" />
+                            </div>
+                            
+                            <div className="space-y-3">
+                                    <div className="bg-gradient-to-b from-blue-100/50 to-blue-50/20 p-4 rounded-xl text-center border border-blue-50">
+                                        <div className="text-gray-600 font-bold text-sm mb-2">二维码生成票券</div>
+                                        <div className="flex justify-center gap-6 items-baseline">
+                                            <span className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">5973</span> 张</span>
+                                            <span className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">118102</span> 人</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gradient-to-b from-blue-100/50 to-blue-50/20 p-4 rounded-xl text-center border border-blue-50">
+                                        <div className="text-gray-600 font-bold text-sm mb-2">领取票券</div>
+                                        <div className="flex justify-center gap-6 items-baseline">
+                                            <span className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">301271</span> 张</span>
+                                            <span className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">912</span> 人</span>
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-3">
                          {generatedTickets.map(ticket => (
                              <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
                                  <div>
@@ -1357,638 +1205,376 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                              </div>
                          ))}
                          {generatedTickets.length === 0 && (
-                             <div className="text-center text-gray-400 py-10">暂无生成记录</div>
+                             <div className="text-center text-gray-400 py-4 text-xs">暂无生成记录</div>
                          )}
                      </div>
+                    </div>
                  )}
              </div>
           </div>
       );
   };
 
-  const renderAdminControl = () => {
-    const slots = generateTimeSlots(adminControlDate, true); 
-    const dates = getNextThreeDays(); 
+  return (
+    <div className="flex flex-col h-full bg-gray-50 relative overflow-hidden">
+        {/* If booking success, full screen overlay */}
+        {bookingStep === 'SUCCESS' && renderBookingSuccess()}
 
-    return (
-        <div className="flex flex-col h-full bg-gray-50">
-            <div className="bg-white p-4 sticky top-0 z-10 shadow-sm border-b border-gray-100">
-                <div className="flex overflow-x-auto gap-2 no-scrollbar">
-                    {dates.map(date => (
-                        <button
-                            key={date}
-                            onClick={() => setAdminControlDate(date)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border
-                                ${adminControlDate === date 
-                                    ? 'bg-purple-600 text-white border-purple-600' 
-                                    : 'bg-white text-gray-500 border-gray-200'}
-                            `}
-                        >
-                            {date}
-                        </button>
-                    ))}
-                </div>
+        {/* If booking flow active (basic or tickets), show modal/overlay style */}
+        {bookingStep !== 'NONE' && bookingStep !== 'SUCCESS' && (
+            <div className="absolute inset-0 z-50 bg-white">
+                {bookingStep === 'BASIC' && renderBookingBasic()}
+                {bookingStep === 'TICKETS' && renderBookingTickets()}
             </div>
+        )}
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-                {slots.map((time, index) => {
-                    const formattedDate = adminControlDate.replace('月', '.').replace('日', '');
-                    const fullTimeStr = `${new Date().getFullYear()}.${formattedDate} ${time}`;
-                    
-                    const bookedSessions = mySessions.filter(s => {
-                         return s.timeStr.startsWith(fullTimeStr);
-                    });
+        {/* Main Content */}
+        {isAdminView ? (
+            /* Admin View Structure */
+            <div className="flex flex-col h-full">
+                {/* Header */}
+                 <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md shrink-0">
+                     <div className="font-bold text-lg">工作人员端</div>
+                     <div className="text-xs bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                        {adminTab === 'TICKETS' && '票券管理'}
+                        {adminTab === 'DATA' && '数据看板'}
+                        {adminTab === 'IDENTITY' && '核销验证'}
+                        {adminTab === 'CONTROL' && '中控管理'}
+                     </div>
+                 </div>
+                 
+                 {/* Content */}
+                 <div className="flex-1 overflow-hidden">
+                     {adminTab === 'TICKETS' && renderAdminTickets()}
+                     {adminTab === 'DATA' && (
+                         <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                             <BarChart size={40} className="opacity-20"/>
+                             <span className="text-sm">数据看板功能开发中</span>
+                         </div>
+                     )}
+                     {adminTab === 'IDENTITY' && (
+                         <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                             <ScanLine size={40} className="opacity-20"/>
+                             <span className="text-sm">核销功能开发中</span>
+                         </div>
+                     )}
+                     {adminTab === 'CONTROL' && (
+                         <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                             <Settings size={40} className="opacity-20"/>
+                             <span className="text-sm">中控系统开发中</span>
+                         </div>
+                     )}
+                 </div>
 
-                    const isBooked = bookedSessions.length > 0;
-                    const session = bookedSessions[0]; 
-
-                    const backstageDataStr = localStorage.getItem('vr_backstage_data');
-                    const isTransferred = session && backstageDataStr && backstageDataStr.includes(session.id);
-
-                    return (
-                        <div key={time} id={`slot-${time}`} className={`rounded-xl border flex overflow-hidden ${isBooked ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-transparent'}`}>
-                            <div className={`w-20 flex items-center justify-center font-mono text-sm font-bold border-r border-dashed
-                                ${isBooked ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-gray-400 border-gray-200'}
-                            `}>
-                                {time}
+                 {/* Tab Bar */}
+                 <div className="h-14 bg-white border-t border-gray-200 flex items-center justify-around text-[10px] text-gray-500 shrink-0">
+                    <button onClick={() => setAdminTab('TICKETS')} className={`flex flex-col items-center gap-1 ${adminTab === 'TICKETS' ? 'text-blue-600' : ''}`}>
+                        <Ticket size={20} />
+                        票券
+                    </button>
+                    <button onClick={() => setAdminTab('DATA')} className={`flex flex-col items-center gap-1 ${adminTab === 'DATA' ? 'text-blue-600' : ''}`}>
+                        <PieChart size={20} />
+                        数据
+                    </button>
+                     <button onClick={() => setAdminTab('IDENTITY')} className={`flex flex-col items-center gap-1 ${adminTab === 'IDENTITY' ? 'text-blue-600' : ''}`}>
+                        <ScanLine size={20} />
+                        核销
+                    </button>
+                    <button onClick={() => setAdminTab('CONTROL')} className={`flex flex-col items-center gap-1 ${adminTab === 'CONTROL' ? 'text-blue-600' : ''}`}>
+                        <Settings size={20} />
+                        中控
+                    </button>
+                 </div>
+            </div>
+        ) : (
+            /* Guest View Structure */
+            <div className="flex flex-col h-full">
+                <div className="flex-1 overflow-y-auto no-scrollbar relative">
+                    {/* HOME TAB */}
+                    {activeTab === 'HOME' && (
+                        <div className="min-h-full bg-[#F5F5F5]">
+                            {/* Banner */}
+                            <div className="relative h-64 w-full bg-slate-800">
+                                <img src="https://images.unsplash.com/photo-1626387346567-38778f0e8169?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover opacity-80" alt="Banner" />
+                                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                                    <h1 className="text-white text-xl font-bold mb-1">LUMI魔法学院</h1>
+                                    <p className="text-white/80 text-xs flex items-center gap-1"><MapPin size={12}/> 北京·ClubMedJoyview延庆度假村</p>
+                                </div>
                             </div>
-                            
-                            <div className="flex-1 p-3 flex justify-between items-center">
-                                {isBooked ? (
-                                    <>
-                                        <div>
-                                            <div className="font-bold text-gray-800 text-sm">VR沉浸体验</div>
-                                            <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                                                <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
-                                                    <User size={10} /> {session.peopleCount}人
-                                                </span>
-                                                <span className="text-[10px]">{session.userName || '用户'}已预约</span>
-                                            </div>
+    
+                            {/* Quick Actions */}
+                            <div className="p-4 -mt-6 relative z-10">
+                                <div className="bg-white rounded-xl shadow-lg p-4 flex justify-between items-center mb-4">
+                                    <button onClick={handleStartBooking} className="flex-1 flex flex-col items-center gap-2 border-r border-gray-100">
+                                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <CalendarClock size={20} />
                                         </div>
-                                        
-                                        {isTransferred ? (
-                                             <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded">已转入后厅</span>
+                                        <span className="text-xs font-bold text-gray-700">预约体验</span>
+                                    </button>
+                                    <button onClick={() => { setActiveTab('MINE'); setMineView('TICKETS'); }} className="flex-1 flex flex-col items-center gap-2">
+                                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                                            <Ticket size={20} />
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-700">我的票券</span>
+                                    </button>
+                                </div>
+    
+                                {/* Info Cards */}
+                                 <div className="space-y-3">
+                                     <div className="bg-white p-4 rounded-xl shadow-sm">
+                                         <div className="flex justify-between items-center mb-3">
+                                             <h3 className="font-bold text-gray-800 text-sm">今日场次</h3>
+                                             <span className="text-xs text-gray-400">10:00 - 22:00</span>
+                                         </div>
+                                         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                             {['14:00', '14:10', '14:20', '14:30', '14:40'].map(t => (
+                                                 <span key={t} className="px-2 py-1 bg-gray-50 rounded text-xs text-gray-600 border border-gray-100 whitespace-nowrap">{t}</span>
+                                             ))}
+                                         </div>
+                                     </div>
+                                     
+                                     <div className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-3">
+                                         <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                                            <img src="https://images.unsplash.com/photo-1622979135225-d2ba269fb1bd?q=80&w=200&auto=format&fit=crop" className="w-full h-full object-cover" />
+                                         </div>
+                                         <div className="flex-1">
+                                             <h4 className="font-bold text-gray-800 text-sm mb-1">新手指南</h4>
+                                             <p className="text-xs text-gray-500 line-clamp-2">第一次来玩？查看这里快速了解游戏规则和注意事项。</p>
+                                         </div>
+                                         <ChevronRight size={16} className="text-gray-300" />
+                                     </div>
+                                 </div>
+                            </div>
+                         </div>
+                    )}
+
+                    {/* MINE TAB */}
+                    {activeTab === 'MINE' && (
+                        <div className="min-h-full bg-gray-50">
+                        {/* Header */}
+                        <div className="bg-slate-900 text-white pt-12 pb-20 px-6 relative overflow-hidden">
+                             <div className="relative z-10 flex items-center gap-4">
+                                 <div className="w-16 h-16 rounded-full border-2 border-white/30 overflow-hidden">
+                                     <img src="https://picsum.photos/200?random=88" className="w-full h-full object-cover" />
+                                 </div>
+                                 <div>
+                                     <div className="text-lg font-bold">微信用户</div>
+                                     <div className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full inline-block mt-1">ID: 8839201</div>
+                                 </div>
+                             </div>
+                             {/* Decorative Circles */}
+                             <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+                        </div>
+
+                        {/* Content Card */}
+                        <div className="-mt-10 mx-4 bg-white rounded-xl shadow-sm min-h-[400px] overflow-hidden flex flex-col">
+                            {/* Tabs within Mine */}
+                            <div className="flex border-b border-gray-100">
+                                <button 
+                                    onClick={() => setMineView('MENU')}
+                                    className={`flex-1 py-3 text-sm font-bold text-center ${mineView === 'MENU' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-gray-400'}`}
+                                >
+                                    个人中心
+                                </button>
+                                <button 
+                                    onClick={() => setMineView('TICKETS')}
+                                    className={`flex-1 py-3 text-sm font-bold text-center ${mineView === 'TICKETS' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-gray-400'}`}
+                                >
+                                    我的票券
+                                </button>
+                                <button 
+                                    onClick={() => setMineView('SESSIONS')}
+                                    className={`flex-1 py-3 text-sm font-bold text-center ${mineView === 'SESSIONS' ? 'text-slate-900 border-b-2 border-slate-900' : 'text-gray-400'}`}
+                                >
+                                    我的场次
+                                </button>
+                            </div>
+
+                            <div className="p-4 flex-1">
+                                {mineView === 'MENU' && (
+                                    <div className="space-y-4">
+                                        <div 
+                                            onClick={() => setShowRedeemModal(true)}
+                                            className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-orange-100/50 rounded-lg border border-orange-100 cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500">
+                                                    <Gift size={16} />
+                                                </div>
+                                                <span className="font-bold text-gray-800 text-sm">兑换优惠券/体验券</span>
+                                            </div>
+                                            <ChevronRight size={16} className="text-gray-400" />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            {[
+                                                { icon: Copy, label: '服务协议', color: 'text-gray-600' },
+                                                { icon: CheckCircle, label: '隐私政策', color: 'text-gray-600' },
+                                                { icon: User, label: '联系客服', color: 'text-gray-600' },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                                     <div className="flex items-center gap-3">
+                                                         <item.icon size={18} className="text-gray-400" />
+                                                         <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                                                     </div>
+                                                     <ChevronRight size={16} className="text-gray-300" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {mineView === 'TICKETS' && (
+                                    <div className="space-y-3">
+                                        {myTickets.length === 0 ? (
+                                            <div className="text-center py-10 text-gray-400 text-sm">暂无票券</div>
                                         ) : (
-                                            <button 
-                                                onClick={() => handleTransferToBackstage(session)}
-                                                className="bg-purple-600 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm active:scale-95 transition-all"
-                                            >
-                                                转入后厅
-                                            </button>
+                                            myTickets.map(ticket => (
+                                                <div key={ticket.id} className={`relative overflow-hidden rounded-xl border ${ticket.status === 'UNUSED' ? 'border-orange-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                                                    <div className="p-4 flex justify-between items-center relative z-10">
+                                                        <div>
+                                                            <div className={`font-bold text-lg ${ticket.status === 'UNUSED' ? 'text-orange-500' : 'text-gray-500'}`}>{ticket.name}</div>
+                                                            <div className="text-xs text-gray-400 mt-1">有效期至: {ticket.validUntil}</div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-sm font-bold text-gray-700">{ticket.peopleCount}人票</div>
+                                                            <div className={`text-xs px-2 py-0.5 rounded mt-1 inline-block ${ticket.status === 'UNUSED' ? 'bg-orange-100 text-orange-600' : 'bg-gray-200 text-gray-500'}`}>
+                                                                {ticket.status === 'UNUSED' ? '未使用' : ticket.status === 'USED' ? '已使用' : '已过期'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {ticket.status === 'UNUSED' && (
+                                                        <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-orange-100/50 rounded-full blur-xl"></div>
+                                                    )}
+                                                    {ticket.status === 'UNUSED' && (
+                                                        <div className="px-4 pb-3 pt-0">
+                                                            <button 
+                                                                onClick={handleUseTicket}
+                                                                className="w-full py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform"
+                                                            >
+                                                                立即使用
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
                                         )}
-                                    </>
-                                ) : (
-                                    <span className="text-xs text-gray-300">空闲场次</span>
+                                    </div>
+                                )}
+
+                                {mineView === 'SESSIONS' && (
+                                    <div className="space-y-3">
+                                         {mySessions.length === 0 ? (
+                                            <div className="text-center py-10 text-gray-400 text-sm">暂无预约场次</div>
+                                        ) : (
+                                            mySessions.map(session => (
+                                                <div key={session.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="font-bold text-gray-800 text-sm">{session.timeStr}</div>
+                                                        <span className={`text-xs px-2 py-0.5 rounded font-medium
+                                                            ${session.status === 'UPCOMING' ? 'bg-blue-50 text-blue-600' : 
+                                                              session.status === 'RUNNING' ? 'bg-green-50 text-green-600' :
+                                                              'bg-gray-100 text-gray-500'}
+                                                        `}>
+                                                            {session.status === 'UPCOMING' ? '待开始' : 
+                                                             session.status === 'RUNNING' ? '进行中' : '已结束'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+                                                        <MapPin size={12} />
+                                                        {session.location}
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-3 border-t border-gray-50">
+                                                        <div className="text-xs text-gray-500">人数: <span className="text-gray-800 font-bold">{session.peopleCount}人</span></div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>
-                    );
-                })}
+                     </div>
+                    )}
+                </div>
+
+                {/* Tab Bar */}
+                <div className="h-16 bg-white border-t border-gray-200 flex items-center justify-around z-20 shrink-0">
+                    <button onClick={() => setActiveTab('HOME')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${activeTab === 'HOME' ? 'text-blue-600' : 'text-gray-400'}`}>
+                        <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} />
+                        <span className="text-[10px] font-medium">首页</span>
+                    </button>
+                    <button onClick={() => setActiveTab('MINE')} className={`flex flex-col items-center gap-1 w-full h-full justify-center ${activeTab === 'MINE' ? 'text-blue-600' : 'text-gray-400'}`}>
+                        <User size={24} strokeWidth={activeTab === 'MINE' ? 2.5 : 2} />
+                        <span className="text-[10px] font-medium">我的</span>
+                    </button>
+                </div>
             </div>
-        </div>
-    );
-  };
-
-  const renderAdminData = () => {
-      const stores = ['全部', '北京·ClubMedJoyview延庆度假村', '秦皇岛·阿那亚店', '成都·太古里店'];
-
-      return (
-          <div className="flex flex-col h-full bg-gray-100">
-              <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-20">
-                  <div className="w-8"></div> 
-                  <h2 className="text-lg font-bold text-gray-800">数据统计</h2>
-                  <button className="flex flex-col items-center text-gray-500">
-                      <Share size={18} />
-                      <span className="text-[10px]">导出</span>
-                  </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                  <div className="bg-white rounded-xl p-4 shadow-sm relative z-10">
-                      <div className="mb-4">
-                          <label className="text-sm font-bold text-gray-700 block mb-2">查询日期:</label>
-                          <div className="flex items-center gap-2 mb-3">
-                              <div className="bg-gray-50 flex-1 py-1 px-2 rounded-lg text-sm text-gray-600 flex justify-between items-center border border-gray-100 relative">
-                                  <input 
-                                    type="date" 
-                                    value={dataStartDate}
-                                    onChange={(e) => {
-                                        setDataStartDate(e.target.value);
-                                        setDataActiveFilter('custom');
-                                    }}
-                                    className="bg-transparent w-full h-full outline-none text-xs text-gray-600"
-                                  />
-                              </div>
-                              <span className="text-gray-400 font-medium text-xs">至</span>
-                              <div className="bg-gray-50 flex-1 py-1 px-2 rounded-lg text-sm text-gray-400 flex justify-between items-center border border-gray-100 relative">
-                                   <input 
-                                    type="date" 
-                                    value={dataEndDate}
-                                    onChange={(e) => {
-                                        setDataEndDate(e.target.value);
-                                        setDataActiveFilter('custom');
-                                    }}
-                                    className="bg-transparent w-full h-full outline-none text-xs text-gray-600"
-                                  />
-                              </div>
-                          </div>
-                          <div className="flex justify-between gap-2">
-                               {['昨天', '今天', '上个月', '本月'].map((label) => (
-                                   <button 
-                                        key={label} 
-                                        onClick={() => handleDateFilterClick(label)}
-                                        className={`flex-1 py-1.5 rounded-full text-xs transition-colors border ${dataActiveFilter === label ? 'bg-blue-500 text-white border-blue-500 shadow-sm shadow-blue-200' : 'bg-white text-blue-400 border-blue-200 hover:bg-blue-50'}`}
-                                   >
-                                       {label}
-                                   </button>
-                               ))}
-                          </div>
-                      </div>
-                      <div className="relative">
-                          <label className="text-sm font-bold text-gray-700 block mb-2">查询酒店:</label>
-                          <button 
-                             onClick={() => setShowStoreOptions(!showStoreOptions)}
-                             className="bg-gray-50 w-full py-2 px-3 rounded-lg text-sm text-gray-600 flex justify-between items-center border border-gray-100"
-                          >
-                              <span className="truncate pr-2">{dataSelectedStore}</span> 
-                              <ChevronDown size={16} className={`text-blue-400 transition-transform ${showStoreOptions ? 'rotate-180' : ''}`}/>
-                          </button>
-                          
-                          {showStoreOptions && (
-                              <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95">
-                                  {stores.map(store => (
-                                      <div 
-                                        key={store}
-                                        onClick={() => {
-                                            setDataSelectedStore(store);
-                                            setShowStoreOptions(false);
-                                        }}
-                                        className={`px-4 py-3 text-sm border-b border-gray-50 hover:bg-blue-50 cursor-pointer flex justify-between items-center
-                                            ${dataSelectedStore === store ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-600'}
-                                        `}
-                                      >
-                                          {store}
-                                          {dataSelectedStore === store && <CheckCircle size={14} />}
-                                      </div>
-                                  ))}
-                              </div>
-                          )}
-                      </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-4 shadow-sm">
-                       <div className="flex items-center gap-2 mb-4">
-                           <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                           <h3 className="font-bold text-gray-800 text-base">汇总统计</h3>
-                       </div>
-                       
-                       <div className="bg-blue-50 rounded-lg p-4 mb-3 border border-blue-100">
-                           <div className="text-center text-gray-500 text-xs mb-1 font-medium">总订场票券</div>
-                           <div className="flex justify-center items-baseline gap-6 mt-1">
-                               <div className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 张</div>
-                               <div className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 人</div>
-                           </div>
-                       </div>
-
-                       <div className="grid grid-cols-2 gap-3">
-                           <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                               <div className="text-xl font-bold text-blue-600 mb-1 font-mono">12 <span className="text-xs text-gray-500 font-normal font-sans">张</span></div>
-                               <div className="text-xs text-gray-400 font-medium">退票票券</div>
-                           </div>
-                           <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                               <div className="text-xl font-bold text-blue-600 mb-1 font-mono">13 <span className="text-xs text-gray-500 font-normal font-sans">张</span></div>
-                               <div className="text-xs text-gray-400 font-medium">过期票券</div>
-                           </div>
-                       </div>
-                  </div>
-
-                   <div className="bg-white rounded-xl p-4 shadow-sm">
-                       <div className="flex items-center gap-2 mb-4">
-                           <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                           <h3 className="font-bold text-gray-800 text-base">酒店票券统计</h3>
-                       </div>
-                       
-                       <div className="bg-blue-50 rounded-lg p-4 mb-3 border border-blue-100">
-                           <div className="text-center text-gray-500 text-xs mb-1 font-medium">酒店订场票券</div>
-                           <div className="flex justify-center items-baseline gap-6 mt-1">
-                               <div className="text-xs text-gray-500">数量: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 张</div>
-                               <div className="text-xs text-gray-500">人数: <span className="text-2xl font-bold text-blue-600 font-mono">123456</span> 人</div>
-                           </div>
-                       </div>
-
-                       <div className="grid grid-cols-3 gap-3">
-                           {[
-                               {label: '领取票券', val: '12'},
-                               {label: '领券未订场', val: '13'},
-                               {label: '退票票券', val: '35'},
-                               {label: '过期票券', val: '460'},
-                               {label: '二维码生成', val: '781'},
-                               {label: '二维码失效', val: '7'},
-                           ].map((item, i) => (
-                               <div key={i} className="bg-gray-50 rounded-lg p-3 border border-gray-100 flex flex-col justify-between h-20">
-                                   <div className="text-lg font-bold text-blue-600 font-mono leading-none">{item.val} <span className="text-[10px] text-gray-400 font-normal font-sans">张</span></div>
-                                   <div className="text-[10px] text-gray-500 font-medium">{item.label}</div>
-                               </div>
-                           ))}
-                       </div>
-                  </div>
-              </div>
-          </div>
-      );
-  };
-
-  const renderAdminIdentity = () => {
-      return (
-          <div className="flex flex-col h-full bg-gray-50 p-6 pt-10">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center mb-6">
-                  <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-4 border-4 border-purple-50 overflow-hidden">
-                      <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="Avatar" className="w-full h-full" />
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-800">店长 · 李晓明</h2>
-                  <p className="text-gray-500 text-sm mt-1">ID: STAFF_88291</p>
-                  
-                  <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-50">
-                      <div className="text-center">
-                          <div className="text-gray-400 text-xs mb-1">所属门店</div>
-                          <div className="font-bold text-gray-700">延庆度假村店</div>
-                      </div>
-                      <div className="text-center border-l border-gray-100">
-                          <div className="text-gray-400 text-xs mb-1">管理权限</div>
-                          <div className="font-bold text-purple-600">一级管理员</div>
-                      </div>
-                  </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                   <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-50 text-left">
-                       <span className="flex items-center gap-3 font-medium text-gray-700">
-                           <Settings size={18} /> 系统设置
-                       </span>
-                       <ChevronRight size={16} className="text-gray-400" />
-                   </button>
-                   <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-50 text-left">
-                       <span className="flex items-center gap-3 font-medium text-gray-700">
-                           <RefreshCw size={18} /> 检查更新
-                       </span>
-                       <span className="text-xs text-gray-400">v1.2.0</span>
-                   </button>
-              </div>
-
-              <button 
-                  onClick={() => setIsAdminView(false)}
-                  className="mt-auto w-full bg-red-50 text-red-600 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
-              >
-                  <LogOut size={18} />
-                  退出管理模式
-              </button>
-          </div>
-      );
-  };
-
-  const renderAdminView = () => {
-      return (
-          <div className="flex flex-col h-full bg-white relative">
-              {adminTab !== 'DATA' && (
-                  <div className="bg-white px-4 py-3 flex items-center justify-between shadow-sm border-b border-gray-100 sticky top-0 z-20">
-                      <div className="font-black text-lg text-purple-700 italic">ADMIN</div>
-                      <div className="text-xs font-medium px-2 py-1 bg-gray-100 rounded text-gray-500">
-                          工作人员端
-                      </div>
-                  </div>
-              )}
-              
-              <div className="flex-1 overflow-hidden relative">
-                  {adminTab === 'TICKETS' && renderAdminTickets()}
-                  {adminTab === 'DATA' && renderAdminData()}
-                  {adminTab === 'IDENTITY' && renderAdminIdentity()}
-                  {adminTab === 'CONTROL' && renderAdminControl()}
-              </div>
-
-              <div className="h-16 bg-white border-t border-gray-200 flex justify-around items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-30">
-                  <button 
-                      onClick={() => setAdminTab('TICKETS')}
-                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'TICKETS' ? 'text-purple-600' : 'text-gray-400'}`}
-                  >
-                      <Ticket size={22} strokeWidth={adminTab === 'TICKETS' ? 2.5 : 2} />
-                      <span className="text-[10px] font-bold">票券</span>
-                  </button>
-                   <button 
-                      onClick={() => setAdminTab('CONTROL')}
-                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'CONTROL' ? 'text-purple-600' : 'text-gray-400'}`}
-                  >
-                      <Command size={22} strokeWidth={adminTab === 'CONTROL' ? 2.5 : 2} />
-                      <span className="text-[10px] font-bold">中控</span>
-                  </button>
-                  <button 
-                      onClick={() => setAdminTab('DATA')}
-                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'DATA' ? 'text-purple-600' : 'text-gray-400'}`}
-                  >
-                      <PieChart size={22} strokeWidth={adminTab === 'DATA' ? 2.5 : 2} />
-                      <span className="text-[10px] font-bold">数据</span>
-                  </button>
-                  <button 
-                      onClick={() => setAdminTab('IDENTITY')}
-                      className={`flex flex-col items-center gap-1 min-w-[50px] ${adminTab === 'IDENTITY' ? 'text-purple-600' : 'text-gray-400'}`}
-                  >
-                      <User size={22} strokeWidth={adminTab === 'IDENTITY' ? 2.5 : 2} />
-                      <span className="text-[10px] font-bold">身份</span>
-                  </button>
-              </div>
-          </div>
-      )
-  };
-
-  if (isAdminView) {
-      return renderAdminView();
-  }
-
-  return (
-    <div className="flex flex-col h-full bg-white relative">
-      
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
-        {bookingStep === 'BASIC' && renderBookingBasic()}
-        {bookingStep === 'TICKETS' && renderBookingTickets()}
-        {bookingStep === 'SUCCESS' && renderBookingSuccess()}
-        
-        {bookingStep === 'NONE' && (
-            activeTab === 'HOME' ? (
-            <div className="flex flex-col">
-                <div className="relative h-64 w-full bg-gray-200">
-                <img 
-                    src="https://images.unsplash.com/photo-1596701062351-8c2c14d1fdd0?q=80&w=800&auto=format&fit=crop" 
-                    alt="VR Space Front Desk" 
-                    className="w-full h-full object-cover"
-                />
-                
-                {userType === 'STAFF' && (
-                    <div className="absolute top-10 right-4 z-20">
-                        <button 
-                            onClick={() => setIsAdminView(true)}
-                            className="bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-gray-800 shadow-sm border border-white/50 flex items-center gap-1 hover:bg-white transition-colors"
-                        >
-                            <Settings size={14} />
-                            管理
-                        </button>
-                    </div>
-                )}
-
-                <div className="absolute top-10 left-4 z-10">
-                    <div className="bg-white/95 backdrop-blur-sm pl-3 pr-4 py-2 rounded-full flex items-center gap-1 shadow-sm border border-gray-100">
-                        <MapPin size={16} className="text-blue-500 fill-blue-500" />
-                        <span className="text-sm font-bold text-gray-800 truncate max-w-[200px]">北京·ClubMedJoyview延庆度假村</span>
-                        <span className="text-gray-400 text-[10px] ml-1">▼</span>
-                    </div>
-                </div>
-                </div>
-
-                <div className="px-4 -mt-10 relative z-10">
-                <div className="bg-white rounded-2xl shadow-xl p-4 border border-white">
-                    <div className="grid grid-cols-2 gap-3">
-                        <div 
-                            onClick={handleStartBooking}
-                            className="bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-blue-200 cursor-pointer group hover:scale-[1.02] transition-transform"
-                        >
-                            <div className="relative z-10 flex flex-col h-full justify-between items-start">
-                                <div className="font-bold text-lg leading-tight">预约体验</div>
-                                <button className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-1.5 px-4 text-xs font-medium flex items-center hover:bg-white/30 transition-colors">
-                                    <Clock size={12} className="mr-1.5" /> 
-                                    预定
-                                </button>
-                            </div>
-                            <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2855/2855260.png" alt="VR" className="w-20 h-20 invert" />
-                            </div>
-                        </div>
-
-                        <div className="bg-gradient-to-br from-orange-400 to-red-400 rounded-xl p-3 h-32 relative overflow-hidden text-white shadow-lg shadow-orange-200 group cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => setShowRedeemModal(true)}>
-                            <div className="relative z-10 flex flex-col h-full justify-between items-start">
-                                <div className="font-bold text-lg leading-tight">团购兑换</div>
-                                <button className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full py-1.5 px-4 text-xs font-medium flex items-center hover:bg-white/30 transition-colors">
-                                    <Ticket size={12} className="mr-1.5" /> 
-                                    兑换
-                                </button>
-                            </div>
-                            <div className="absolute -bottom-2 -right-2 opacity-30 rotate-12 group-hover:scale-110 transition-transform duration-500">
-                                <Gift size={64} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </div>
-
-                {(() => {
-                    const upcomingSessions = mySessions.filter(s => {
-                        if (s.status === 'RUNNING' || s.status === 'COMPLETED') return false;
-                        return getSessionStatus(s.timeStr) === 'UPCOMING';
-                    });
-                    const latestSession = upcomingSessions[0]; 
-                    
-                    if (latestSession) {
-                        return (
-                        <div className="px-4 mt-6 animate-in slide-in-from-bottom duration-500">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Clock className="text-blue-500" size={18} />
-                                <h3 className="font-bold text-gray-800 text-lg">最近预约的场次</h3>
-                            </div>
-
-                            <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 relative">
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex text-sm">
-                                        <span className="text-gray-400 w-20 shrink-0">场次时间:</span>
-                                        <span className="font-medium text-gray-800">{latestSession.timeStr}</span>
-                                    </div>
-                                    <div className="flex text-sm">
-                                        <span className="text-gray-400 w-20 shrink-0">场次地点:</span>
-                                        <span className="font-medium text-gray-800">{latestSession.location}</span>
-                                    </div>
-                                    <div className="flex text-sm">
-                                        <span className="text-gray-400 w-20 shrink-0">预约人数:</span>
-                                        <span className="font-medium text-gray-800">{latestSession.peopleCount}人</span>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end">
-                                    <button 
-                                        onClick={() => { setActiveTab('MINE'); setMineView('SESSIONS'); }}
-                                        className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium shadow-md shadow-blue-200 transition-colors"
-                                    >
-                                        查看详情
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        );
-                    }
-                    return null;
-                })()}
-
-                <div className="px-4 mt-6 mb-4">
-                    <div className="flex justify-between items-center mb-3">
-                        <h3 className="font-bold text-gray-800 text-lg">热门活动</h3>
-                        <span className="text-gray-400 text-xs">查看更多 &gt;</span>
-                    </div>
-                    <div className="bg-white border rounded-xl p-3 flex gap-3 shadow-sm">
-                        <img src="https://picsum.photos/100/100?random=10" className="w-20 h-20 rounded-lg object-cover bg-gray-200" alt="Activity" />
-                        <div className="flex-1 flex flex-col justify-between py-1">
-                            <div className="font-bold text-gray-800 text-sm">周末特惠双人行</div>
-                            <div className="text-xs text-gray-500">限时折扣，体验火星救援副本</div>
-                            <div className="flex gap-2 mt-1">
-                                <span className="px-2 py-0.5 bg-red-100 text-red-500 text-[10px] rounded">热门</span>
-                                <span className="px-2 py-0.5 bg-orange-100 text-orange-500 text-[10px] rounded">特惠</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            ) : (
-            renderMineContent()
-            )
         )}
-      </div>
 
-      {bookingStep === 'NONE' && (
-          <div className="absolute bottom-0 w-full h-20 bg-white border-t border-gray-100 flex justify-between items-end px-12 pb-2 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50">
-            <button 
-            onClick={() => { setActiveTab('HOME'); setMineView('MENU'); }}
-            className={`flex flex-col items-center gap-1 mb-2 ${activeTab === 'HOME' ? 'text-blue-500' : 'text-gray-400'}`}
-            >
-            <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} className="transition-all" />
-            <span className="text-[10px] font-bold">首页</span>
-            </button>
-
-            <div className="absolute left-1/2 transform -translate-x-1/2 -top-6 cursor-pointer group">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-b from-cyan-400 to-blue-500 shadow-lg shadow-blue-300 flex flex-col items-center justify-center text-white border-4 border-white group-hover:scale-105 transition-transform">
-                    <ScanLine size={24} />
-                    <span className="text-[9px] font-bold mt-0.5">现场签到</span>
-                </div>
-            </div>
-
-            <button 
-            onClick={() => setActiveTab('MINE')}
-            className={`flex flex-col items-center gap-1 mb-2 ${activeTab === 'MINE' ? 'text-blue-500' : 'text-gray-400'}`}
-            >
-            <User size={24} strokeWidth={activeTab === 'MINE' ? 2.5 : 2} className="transition-all" />
-            <span className="text-[10px] font-bold">我的</span>
-            </button>
-        </div>
-      )}
-
-      {showBookingNotice && (
-          <div className="absolute inset-0 z-[70] flex items-center justify-center px-6">
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setShowBookingNotice(false)} />
-              
-              <div className="relative w-full bg-white rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                  <button 
-                      onClick={() => setShowBookingNotice(false)}
-                      className="absolute top-4 right-4 text-blue-500 hover:text-blue-700"
-                  >
-                      <X size={20} />
-                  </button>
-
-                  <h3 className="text-lg font-bold text-center text-gray-800 mb-6">预约须知</h3>
-
-                  <div className="space-y-4 text-xs text-gray-600 mb-8">
-                      <div className="flex gap-2">
-                          <span className="font-bold min-w-[12px]">1、</span>
-                          <p>在预约场次开场前3小时内，不得撤销场次，不可取消或退票，请准时参与</p>
-                      </div>
-                      <div className="flex gap-2">
-                          <span className="font-bold min-w-[12px]">2、</span>
-                          <p>如果确认的场次时间您无法准时参与，可提前修改场次时间，最多可修改3次</p>
-                      </div>
-                      <div className="flex gap-2">
-                          <span className="font-bold min-w-[12px]">3、</span>
-                          <p>请至少在开场前5分钟修改场次时间，之后将无法修改场次时间</p>
-                      </div>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-2 mb-6 cursor-pointer" onClick={() => setNoticeAgreed(!noticeAgreed)}>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${noticeAgreed ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
-                          {noticeAgreed && <CheckCircle size={10} className="text-white" />}
-                      </div>
-                      <span className="text-xs text-gray-500">我已了解并同意该协议</span>
-                  </div>
-
-                  <button 
-                      onClick={executeBooking}
-                      disabled={!noticeAgreed}
-                      className="w-full bg-blue-500 text-white font-bold py-3.5 rounded-lg shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                      确定预约
-                  </button>
-              </div>
-          </div>
-      )}
-
+      {/* Global Modals */}
+      {/* Redeem Modal */}
       {showRedeemModal && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center px-6">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={() => setShowRedeemModal(false)} />
-          
-          <div className="relative w-full bg-gradient-to-b from-[#FFF5E6] via-white to-white rounded-[2rem] p-6 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-             
-             <button 
-                onClick={() => setShowRedeemModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-20"
-             >
-                <X size={20} />
-             </button>
-
-             <Star className="absolute top-6 left-1/3 text-yellow-400 fill-yellow-400 animate-pulse" size={16} />
-             <Star className="absolute top-4 right-1/3 text-yellow-400 fill-yellow-400 animate-bounce" style={{animationDuration: '3s'}} size={20} />
-
-             <div className="text-center mt-4 mb-8 relative">
-                <h2 className="text-2xl font-black text-gray-900 italic transform -rotate-2 relative z-10" style={{ textShadow: '2px 2px 0px rgba(255,255,255,1)' }}>
-                  兑换卡券
-                </h2>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black text-orange-500/10 tracking-widest pointer-events-none select-none">
-                  COUPON
-                </div>
-             </div>
-
-             <div className="flex justify-center items-center gap-4 mb-2">
-                <div className="w-12 h-12 rounded-full bg-[#FFC300] border-2 border-white shadow-md flex items-center justify-center overflow-hidden">
-                     <span className="font-bold text-xs text-black transform -rotate-12">美团</span>
-                </div>
-                <div className="w-12 h-12 rounded-full bg-[#FF6600] border-2 border-white shadow-md flex items-center justify-center text-white">
-                     <User size={20} strokeWidth={2.5} />
-                </div>
-                <div className="w-12 h-12 rounded-full bg-black border-2 border-white shadow-md flex items-center justify-center text-white relative overflow-hidden">
-                    <Music size={20} className="relative z-10" />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/50 to-red-500/50 mix-blend-screen"></div>
-                </div>
-             </div>
-             
-             <p className="text-center text-xs text-gray-500 font-medium mb-8">团购自动验券</p>
-
-             <div className="bg-[#F5F5F5] rounded-xl flex items-center px-4 py-3 mb-8 border border-transparent focus-within:border-orange-200 transition-colors">
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowRedeemModal(false)}></div>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm relative z-10 animate-in fade-in zoom-in-95">
+                <button onClick={() => setShowRedeemModal(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"><X size={20}/></button>
+                <h3 className="text-lg font-bold text-gray-800 mb-6 text-center">兑换票券</h3>
                 <input 
                     type="text" 
-                    placeholder="请输入优惠券兑换码" 
-                    className="flex-1 bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
+                    placeholder="请输入兑换码 / 优惠券码"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-blue-500 text-center font-mono tracking-widest text-lg"
                 />
-                <ScanLine className="text-gray-400" size={20} />
-             </div>
-
-             <button 
-                onClick={handleRedeem}
-                className="w-full bg-gradient-to-r from-[#FF8C69] to-[#FF4D4D] text-white font-bold text-lg py-3.5 rounded-full shadow-[0_8px_20px_-6px_rgba(255,87,87,0.5)] active:scale-95 transition-transform relative overflow-hidden group"
-             >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full"></div>
-                兑换
-             </button>
-
-             <div className="mt-8 text-center space-y-2">
-                <p className="text-xs font-bold text-gray-700">票券使用期限为30天，请尽快使用奥~</p>
-                <div className="text-[10px] text-gray-400 leading-tight px-2 scale-90">
-                     本券仅限在有效期内使用，过期作废。请在核销前出示此券。最终解释权归主办方所有。
-                </div>
-             </div>
-          </div>
+                <button 
+                    onClick={handleRedeem}
+                    disabled={!couponCode}
+                    className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-200 disabled:opacity-50 disabled:shadow-none transition-all"
+                >
+                    立即兑换
+                </button>
+            </div>
         </div>
       )}
 
+      {/* Booking Notice Modal */}
+      {showBookingNotice && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+            <div className="bg-white rounded-2xl w-full max-w-sm relative z-10 overflow-hidden flex flex-col max-h-[80%] animate-in slide-in-from-bottom duration-300">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-800">预订须知</h3>
+                    <button onClick={() => setShowBookingNotice(false)}><X size={20} className="text-gray-400"/></button>
+                </div>
+                <div className="p-5 overflow-y-auto text-sm text-gray-600 space-y-3 leading-relaxed">
+                    <p className="font-bold text-gray-800">1. 到场时间</p>
+                    <p>请务必提前15分钟到达现场，进行检票、穿戴设备及新手引导。迟到可能导致体验时间缩短。</p>
+                    <p className="font-bold text-gray-800 mt-2">2. 着装建议</p>
+                    <p>建议穿着轻便舒适的衣物和鞋子，避免穿着高跟鞋或裙子，以免影响体验动作。</p>
+                    <p className="font-bold text-gray-800 mt-2">3. 健康状况</p>
+                    <p>患有心脏病、高血压、严重眩晕症、癫痫及孕妇不建议参与体验。酒后严禁参与。</p>
+                    <p className="font-bold text-gray-800 mt-2">4. 退改规则</p>
+                    <p>开场前2小时可免费改签一次。开场前2小时内不可退改。</p>
+                </div>
+                <div className="p-4 border-t border-gray-100 bg-gray-50">
+                    <div className="flex items-center gap-2 mb-4" onClick={() => setNoticeAgreed(!noticeAgreed)}>
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${noticeAgreed ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
+                            {noticeAgreed && <CheckCircle size={14} className="text-white" />}
+                        </div>
+                        <span className="text-xs text-gray-600">我已阅读并同意以上须知</span>
+                    </div>
+                    <button 
+                        onClick={executeBooking}
+                        disabled={!noticeAgreed}
+                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        确认并支付
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
