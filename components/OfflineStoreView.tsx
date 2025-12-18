@@ -123,13 +123,13 @@ const OfflineStoreView: React.FC = () => {
                      />
                      
                      {/* Floating Price Tag */}
-                     <div className="absolute top-2 right-2 bg-gradient-to-br from-[#d4af37] to-[#b8860b] text-black font-black text-lg px-4 py-1.5 rounded-lg shadow-xl border-l border-b border-white/20 z-20">
+                     <div className="absolute top-2 left-2 bg-gradient-to-br from-[#d4af37] to-[#b8860b] text-black font-black text-lg px-4 py-1.5 rounded-lg shadow-xl border-l border-b border-white/20 z-20">
                        ¥{product.price}
                      </div>
 
-                     {/* Stock Badge */}
-                     <div className={`absolute bottom-2 right-2 px-2 py-0.5 rounded text-[8px] font-bold ${product.stock && product.stock > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {product.stock && product.stock > 0 ? `仅剩 ${product.stock} 件` : '已售罄'}
+                     {/* Stock Badge - MOVED and RAISED z-index to avoid obscuring */}
+                     <div className={`absolute top-2 left-2 px-2 py-1 rounded-md text-[9px] font-black z-30 shadow-lg ${product.stock && product.stock > 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                        {product.stock && product.stock > 0 ? `STOCK: ${product.stock}` : 'OUT OF STOCK'}
                      </div>
                   </div>
                   
