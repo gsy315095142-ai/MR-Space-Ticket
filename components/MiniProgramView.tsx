@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2 } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface MiniProgramViewProps {
@@ -41,7 +41,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [mineBadge, setMineBadge] = useState(false);
 
   // View States
-  const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH'>('MENU');
+  const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH' | 'COUPONS'>('MENU');
   const [bookingStep, setBookingStep] = useState<'NONE' | 'BASIC' | 'TICKETS' | 'SUCCESS'>('NONE');
 
   useEffect(() => {
@@ -443,6 +443,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                       <div className="flex items-center gap-4"><Ticket size={20} className="text-blue-500"/> <span className="font-bold text-gray-700">我的票券</span></div>
                       <ChevronRight size={18} className="text-gray-300"/>
                     </button>
+                    <button onClick={() => setMineView('COUPONS' as any)} className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4"><Percent size={20} className="text-orange-500"/> <span className="font-bold text-gray-700">我的优惠券</span></div>
+                      <ChevronRight size={18} className="text-gray-300"/>
+                    </button>
                     <button onClick={() => setMineView('SESSIONS' as any)} className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4"><Calendar size={20} className="text-emerald-500"/> <span className="font-bold text-gray-700">我的场次</span></div>
                       <ChevronRight size={18} className="text-gray-300"/>
@@ -461,6 +465,33 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
               </div>
             )}
             {mineView === 'MERCH' && <UserMerchTicketsView />}
+            {mineView === 'COUPONS' && (
+              <div className="flex flex-col h-full bg-slate-50 animate-in slide-in-from-right duration-300">
+                <div className="bg-white p-4 flex items-center border-b sticky top-0 z-10 shadow-sm">
+                  <button onClick={() => setMineView('MENU')} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
+                  <h2 className="flex-1 text-center font-bold">我的优惠券</h2>
+                  <div className="w-8"></div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                   <div className="bg-white border-l-8 border-orange-500 rounded-xl p-4 shadow-sm flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute -right-4 -top-4 w-12 h-12 bg-orange-50 rounded-full"></div>
+                      <div>
+                        <div className="text-lg font-bold text-orange-600">￥50 满减券</div>
+                        <div className="text-[10px] text-gray-400">满299元可用 | 全场通用</div>
+                        <div className="text-[10px] text-gray-400 mt-2">有效期至 2025-12-31</div>
+                      </div>
+                      <button className="bg-orange-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full">去使用</button>
+                   </div>
+                   <div className="bg-white border-l-8 border-blue-500 rounded-xl p-4 shadow-sm flex justify-between items-center opacity-60">
+                      <div>
+                        <div className="text-lg font-bold text-blue-600">8.5折 体验券</div>
+                        <div className="text-[10px] text-gray-400">仅限平日场次可用</div>
+                        <div className="text-[10px] text-gray-400 mt-2">已过期</div>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
