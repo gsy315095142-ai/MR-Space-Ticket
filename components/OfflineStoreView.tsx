@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-// Added ShoppingCart to the import list from lucide-react
 import { ShoppingBag, Tag, CheckCircle2, X, Barcode, Boxes, ShoppingCart } from 'lucide-react';
 import { MerchItem } from '../types';
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
 ];
 
 const OfflineStoreView: React.FC = () => {
@@ -33,7 +32,6 @@ const OfflineStoreView: React.FC = () => {
   const handlePurchase = () => {
     if (!selectedProduct) return;
 
-    // Update sales record
     const storedSales = localStorage.getItem('vr_offline_sales');
     const sales = storedSales ? JSON.parse(storedSales) : [];
     
@@ -48,7 +46,6 @@ const OfflineStoreView: React.FC = () => {
 
     localStorage.setItem('vr_offline_sales', JSON.stringify([newSale, ...sales]));
     
-    // Update global stock
     const updatedProducts = products.map(p => {
         if (p.id === selectedProduct.id) {
             return { ...p, stock: Math.max(0, (p.stock || 0) - 1) };
@@ -67,7 +64,6 @@ const OfflineStoreView: React.FC = () => {
     }, 2000);
   };
 
-  // Helper to chunk products for shelf visualization
   const shelfChunks: MerchItem[][] = [];
   for (let i = 0; i < products.length; i += 3) {
     shelfChunks.push(products.slice(i, i + 3));
@@ -75,7 +71,6 @@ const OfflineStoreView: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a] p-8 overflow-hidden">
-      {/* Header Section */}
       <div className="flex items-center justify-between mb-8 bg-[#2a2a2a] p-6 rounded-3xl border border-[#3a3a3a] shadow-2xl shrink-0">
         <div className="flex items-center gap-4">
           <div className="p-4 bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-2xl shadow-inner">
@@ -95,13 +90,10 @@ const OfflineStoreView: React.FC = () => {
         </div>
       </div>
 
-      {/* Dynamic Realistic Shelf Area */}
       <div className="flex-1 flex flex-col justify-start px-4 overflow-y-auto no-scrollbar space-y-20">
         {shelfChunks.length > 0 ? shelfChunks.map((chunk, shelfIdx) => (
           <div key={shelfIdx} className="relative group pt-4">
-            {/* Plank Body - Base shelf */}
             <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-b from-[#3d2b1f] to-[#2a1d15] rounded-lg shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-t border-[#4d3b2f] z-10"></div>
-            {/* Plank Side detail */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-[#5d4b3f] z-20 opacity-30"></div>
             
             <div className="grid grid-cols-3 gap-12 relative z-0 pb-12">
@@ -111,9 +103,7 @@ const OfflineStoreView: React.FC = () => {
                   onClick={() => setSelectedProduct(product)}
                   className="relative group/item cursor-pointer flex flex-col items-center"
                 >
-                  {/* Virtual Display Box Effect */}
                   <div className="relative w-full aspect-[4/5] bg-gradient-to-b from-stone-800 to-stone-900 rounded-2xl overflow-hidden border border-stone-700 shadow-inner flex flex-col items-center justify-center p-4 transition-transform duration-500 hover:-translate-y-6 hover:shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
-                     {/* Light glow behind product */}
                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-amber-500/10 blur-[40px] rounded-full"></div>
                      
                      <img 
@@ -122,18 +112,15 @@ const OfflineStoreView: React.FC = () => {
                        className="w-full h-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.9)] z-10 transition-transform duration-700 group-hover/item:scale-110"
                      />
                      
-                     {/* Floating Price Tag */}
                      <div className="absolute top-2 left-2 bg-gradient-to-br from-[#d4af37] to-[#b8860b] text-black font-black text-lg px-4 py-1.5 rounded-lg shadow-xl border-l border-b border-white/20 z-20">
                        ¥{product.price}
                      </div>
 
-                     {/* Stock Badge - MOVED and RAISED z-index to avoid obscuring */}
                      <div className={`absolute top-2 left-2 px-2 py-1 rounded-md text-[9px] font-black z-30 shadow-lg ${product.stock && product.stock > 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
                         {product.stock && product.stock > 0 ? `STOCK: ${product.stock}` : 'OUT OF STOCK'}
                      </div>
                   </div>
                   
-                  {/* Label Tag */}
                   <div className="mt-4 bg-[#f4f1ea] px-4 py-1.5 rounded-sm shadow-md border-t-2 border-white flex flex-col items-center min-w-[110px] transform -rotate-1 relative z-20">
                      <div className="text-[9px] font-black text-stone-800 uppercase text-center truncate w-full">{product.name}</div>
                      <div className="h-[1px] w-full bg-stone-300 my-1"></div>
@@ -141,8 +128,6 @@ const OfflineStoreView: React.FC = () => {
                   </div>
                 </div>
               ))}
-              
-              {/* Fill with empty slots if row not full */}
               {chunk.length < 3 && Array.from({ length: 3 - chunk.length }).map((_, i) => (
                 <div key={`empty-${i}`} className="aspect-[4/5] flex items-center justify-center opacity-10">
                    <ShoppingCart size={40} className="text-white" />
@@ -163,19 +148,16 @@ const OfflineStoreView: React.FC = () => {
         <p className="text-amber-500/60 text-xs font-bold uppercase tracking-widest italic">系统提示：门店库存与价格由“前店小程序”实时管控同步</p>
       </div>
 
-      {/* Purchase Modal */}
       {selectedProduct && !isSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-8 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setSelectedProduct(null)}></div>
           <div className="relative bg-[#fcfaf5] w-[520px] rounded-[3rem] overflow-hidden shadow-[0_0_100px_rgba(212,175,55,0.2)] animate-in zoom-in-95 duration-300 border-8 border-[#2a2a2a]">
             <button onClick={() => setSelectedProduct(null)} className="absolute top-8 right-8 p-3 hover:bg-stone-100 rounded-full text-stone-400 transition-colors"><X size={28} /></button>
-            
             <div className="p-12">
                <div className="flex flex-col items-center mb-10">
                  <div className="text-[10px] font-black tracking-[0.3em] text-amber-600 mb-2 uppercase">Sale Confirmation</div>
                  <h2 className="text-4xl font-black text-stone-900 font-serif">确认线下销售</h2>
                </div>
-               
                <div className="flex gap-8 mb-12 items-center bg-white p-8 rounded-[2.5rem] shadow-inner border border-stone-100">
                   <div className="relative w-32 h-32 flex items-center justify-center bg-stone-50 rounded-2xl overflow-hidden">
                     <img src={selectedProduct.image} className="max-w-full max-h-full object-contain drop-shadow-lg z-10 relative" alt="" />
@@ -188,17 +170,14 @@ const OfflineStoreView: React.FC = () => {
                      </div>
                   </div>
                </div>
-
                <div className="space-y-8">
                   <div className="bg-white p-8 rounded-3xl border-2 border-stone-800 flex flex-col items-center shadow-lg">
                       <Barcode size={80} className="text-stone-900" strokeWidth={1.5} />
                       <div className="text-[10px] font-mono font-black text-stone-800 mt-2 tracking-[0.5em] uppercase">POS-OFFLINE-{selectedProduct.id}</div>
                   </div>
-
                   <p className="text-stone-500 text-center text-sm font-medium leading-relaxed px-6">
                     正在核实线下库存... (当前:{selectedProduct.stock || 0}) 确认成交后将自动扣减全平台配额。
                   </p>
-
                   <button 
                     onClick={handlePurchase}
                     disabled={!selectedProduct.stock || selectedProduct.stock <= 0}
@@ -213,7 +192,6 @@ const OfflineStoreView: React.FC = () => {
         </div>
       )}
 
-      {/* Success View */}
       {isSuccess && (
          <div className="fixed inset-0 z-[110] flex items-center justify-center animate-in fade-in duration-300">
             <div className="absolute inset-0 bg-[#1a1a1a]/95 backdrop-blur-2xl"></div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle, Upload, Box } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle, Upload, Box, TicketCheck, History, Wallet, Trophy, ShieldCheck, Search, FileText, Phone } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface MiniProgramViewProps {
@@ -9,9 +9,9 @@ interface MiniProgramViewProps {
 }
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
 ];
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigger, initialAdminTab }) => {
@@ -35,7 +35,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
 
   // --- 3. GUEST STATE ---
   const [activeTab, setActiveTab] = useState<'HOME' | 'MINE'>('HOME');
-  const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH' | 'COUPONS'>('MENU');
+  const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH' | 'COUPONS'>('TICKETS');
   const [showIntro, setShowIntro] = useState(false);
   const [showStore, setShowStore] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -44,17 +44,22 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [confirmQuantity, setConfirmQuantity] = useState(1);
   const [homeStore] = useState('北京·ClubMedJoyview延庆度假村');
 
+  // Flows
+  const [showBookingFlow, setShowBookingFlow] = useState(false);
+  const [bookingDateIdx, setBookingDateIdx] = useState(0);
+  const [bookingTime, setBookingTime] = useState<string | null>(null);
+  const [bookingGuests, setBookingGuests] = useState(1);
+  const [showRedeemFlow, setShowRedeemFlow] = useState(false);
+  const [redeemCode, setRedeemCode] = useState('');
+
   // --- 4. DATA SYNC ---
   const loadData = () => {
     const storedMerch = localStorage.getItem('vr_user_merch');
     if (storedMerch) setUserMerchTickets(JSON.parse(storedMerch));
-
     const storedOffline = localStorage.getItem('vr_offline_sales');
     if (storedOffline) setOfflineSales(JSON.parse(storedOffline));
-    
     const storedGen = localStorage.getItem('vr_generated_tickets');
     if (storedGen) setGeneratedTickets(JSON.parse(storedGen));
-
     const storedProducts = localStorage.getItem('vr_global_products');
     if (storedProducts) {
       setProducts(JSON.parse(storedProducts));
@@ -73,66 +78,365 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     if (initialAdminTab) setAdminTab(initialAdminTab);
   }, [initialAdminTab]);
 
+  useEffect(() => {
+      // If reset trigger happens, reset guest view
+      if (resetTrigger) {
+          setActiveTab('HOME');
+          setMineView('TICKETS');
+      }
+  }, [resetTrigger]);
+
   const saveProducts = (newProducts: MerchItem[]) => {
     setProducts(newProducts);
     localStorage.setItem('vr_global_products', JSON.stringify(newProducts));
     window.dispatchEvent(new Event('storage_update'));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && editingProduct) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingProduct({ ...editingProduct, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleConfirmRedeem = (ticketId: string) => {
-    const updated = userMerchTickets.map(t => 
-      t.id === ticketId ? { ...t, status: 'REDEEMED' as const } : t
-    );
-    setUserMerchTickets(updated);
-    localStorage.setItem('vr_user_merch', JSON.stringify(updated));
-    window.dispatchEvent(new Event('storage_update'));
-    alert('已核销成功！');
-  };
-
-  const handleTransferToBackstage = (sessionData: any) => {
-    const stored = localStorage.getItem('vr_backstage_data');
-    const backstageData = stored ? JSON.parse(stored) : [];
+  const handleTransferToBackstage = (session: { id: number; time: string; count: number; status: string }) => {
+    setAdminSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'TRANSFERRED' } : s));
     
-    const newSession = {
-      id: 'S' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      timeStr: sessionData.time,
-      location: '体验区-01',
-      peopleCount: sessionData.count,
-      status: 'UPCOMING',
-      userName: '签到用户'
+    const storedBackstage = localStorage.getItem('vr_backstage_data');
+    const currentBackstage = storedBackstage ? JSON.parse(storedBackstage) : [];
+    
+    const newItem = {
+        id: `SESSION_${session.id}_${Date.now()}`,
+        timeStr: session.time,
+        location: homeStore,
+        peopleCount: session.count,
+        status: 'UPCOMING',
+        userName: '现场团客'
     };
-
-    localStorage.setItem('vr_backstage_data', JSON.stringify([newSession, ...backstageData]));
     
-    // Update local admin sessions state to show "Transferred"
-    setAdminSessions(prev => prev.map(s => s.id === sessionData.id ? { ...s, status: 'TRANSFERRED' } : s));
-    
+    localStorage.setItem('vr_backstage_data', JSON.stringify([...currentBackstage, newItem]));
     window.dispatchEvent(new Event('storage_update'));
     window.dispatchEvent(new Event('session_transferred_to_backstage'));
-    alert('场次已转入后厅监控');
+    
+    alert(`场次 [${session.time}] 已转入后厅系统`);
   };
 
-  // --- 5. STAFF RENDERERS ---
+  // --- 5. GUEST RENDERERS ---
+  const GuestHome = () => (
+    <div className="flex flex-col bg-white pb-32">
+      {/* Banner */}
+      <div className="relative h-72 w-full shrink-0">
+        <img src="https://images.unsplash.com/photo-1626379953822-baec19c3accd?q=80&w=1000" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+        <div className="absolute top-4 left-4 z-20"><div className="flex items-center gap-1 text-white bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20"><MapPin size={12} /><span className="text-xs font-bold max-w-[120px] truncate">{homeStore}</span></div></div>
+        <div className="absolute bottom-6 left-6 text-white"><div className="text-[10px] font-bold bg-purple-500/90 backdrop-blur-sm px-2 py-0.5 rounded inline-block mb-2 shadow-lg shadow-purple-900/50">XR大空间旗舰店</div><h1 className="text-3xl font-black leading-tight drop-shadow-md">LUMI魔法学院<br />沉浸式奇幻之旅</h1></div>
+      </div>
+      
+      {/* Quick Actions */}
+      <div className="px-5 -mt-8 relative z-10 grid grid-cols-2 gap-4">
+        <button 
+          onClick={() => {
+            setBookingDateIdx(0);
+            setBookingTime(null);
+            setBookingGuests(1);
+            setShowBookingFlow(true);
+          }}
+          className="bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200 border border-slate-100 flex flex-col justify-between h-40 active:scale-95 transition-transform text-left group overflow-hidden relative"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center relative z-10 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors"><CalendarDays size={24} /></div>
+          <div className="relative z-10">
+            <div className="font-black text-lg text-slate-800">预约购票</div>
+            <div className="text-[10px] text-slate-400 mt-1">沉浸式奇幻体验</div>
+          </div>
+        </button>
+        <button 
+          onClick={() => {
+            setRedeemCode('');
+            setShowRedeemFlow(true);
+          }}
+          className="bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200 border border-slate-100 flex flex-col justify-between h-40 active:scale-95 transition-transform text-left group overflow-hidden relative"
+        >
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-50 rounded-full group-hover:scale-110 transition-transform"></div>
+          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center relative z-10 shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-colors"><Gift size={24} /></div>
+          <div className="relative z-10">
+            <div className="font-black text-lg text-slate-800">兑换体验券</div>
+            <div className="text-[10px] text-slate-400 mt-1">魔法验证码兑换</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Main Content Sections */}
+      <div className="px-5 mt-8 space-y-8">
+        {/* Merch Store Module */}
+        <section>
+          <div className="flex items-center justify-between px-1 mb-4">
+            <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg"><ShoppingBag size={20} className="text-purple-600" /> 周边商城</h3>
+            <button onClick={() => setShowStore(true)} className="text-xs font-bold text-slate-400 hover:text-purple-600">更多好物 ></button>
+          </div>
+          <button onClick={() => setShowStore(true)} className="relative w-full h-48 rounded-[2rem] overflow-hidden shadow-2xl active:scale-[0.98] transition-all group">
+            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent"></div>
+            <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
+              <div className="text-xs text-purple-300 font-black mb-2 flex items-center gap-1 uppercase tracking-widest"><Sparkles size={12}/> Artisan Magic</div>
+              <div className="text-3xl font-black mb-2">魔法学院<br/>周边上新</div>
+              <div className="text-[10px] opacity-80 max-w-[150px] leading-relaxed">让魔法带回家，收藏属于你的回忆</div>
+            </div>
+          </button>
+        </section>
+
+        {/* Project Intro Module */}
+        <section>
+          <div className="flex items-center justify-between px-1 mb-4">
+            <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg"><BookOpen size={20} className="text-blue-600" /> 项目介绍</h3>
+            <button onClick={() => setShowIntro(true)} className="text-xs font-bold text-slate-400 hover:text-blue-600">了解详情 ></button>
+          </div>
+          <button onClick={() => setShowIntro(true)} className="relative w-full h-40 rounded-[2rem] overflow-hidden shadow-xl group active:scale-[0.98] transition-all border border-slate-100">
+            <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 p-6 text-left w-full">
+              <div className="text-xl font-black text-white mb-1 flex items-center gap-2">探索魔法学院奥秘 <ChevronRight size={16} className="text-white/50"/></div>
+              <div className="text-[10px] text-white/70 truncate">在300平米物理空间内，开启属于你的魔法传奇</div>
+            </div>
+          </button>
+        </section>
+
+        {/* Member Benefits */}
+        <section className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
+          <h3 className="font-black text-slate-800 flex items-center gap-2 mb-4"><Trophy size={18} className="text-amber-500" /> 会员尊享权益</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center mb-3 shadow-inner"><Percent size={20}/></div>
+              <div className="text-sm font-bold text-slate-800">消费返利</div>
+              <div className="text-[10px] text-slate-400 mt-1">每单最高返10%积分</div>
+            </div>
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center mb-3 shadow-inner"><ShieldCheck size={20}/></div>
+              <div className="text-sm font-bold text-slate-800">优先预约</div>
+              <div className="text-[10px] text-slate-400 mt-1">热门场次提前24小时</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Hot Events */}
+        <section>
+          <div className="flex items-center justify-between px-1 mb-4">
+            <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg"><TrendingUp size={20} className="text-rose-500" /> 热门推荐</h3>
+          </div>
+          <div className="space-y-4">
+            {[
+              { title: '魔法觉醒：新手试炼', time: '15:30 可预约', price: '¥128', img: 'https://images.unsplash.com/photo-1513519245088-0e12902e35a6?w=600&h=400&fit=crop' },
+              { title: '禁忌森林：深度冒险', time: '19:00 可预约', price: '¥258', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=400&fit=crop' }
+            ].map((event, i) => (
+              <div key={i} className="flex gap-4 bg-white p-3 rounded-[1.5rem] shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer">
+                <img src={event.img} className="w-24 h-24 rounded-2xl object-cover bg-slate-100" />
+                <div className="flex-1 flex flex-col justify-between py-2 pr-2">
+                  <div>
+                    <div className="font-bold text-sm text-slate-800">{event.title}</div>
+                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Clock size={10}/> {event.time}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-rose-600 font-black text-lg">{event.price}</span>
+                    <button className="bg-slate-900 text-white text-[10px] px-3 py-1.5 rounded-full font-bold">预约</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+
+  const GuestMine = () => {
+    // Ensure default tab is valid if coming from a stale state
+    useEffect(() => {
+        if (mineView === 'MENU') setMineView('TICKETS');
+    }, []);
+
+    return (
+        <div className="flex flex-col h-full bg-[#f6f7f9]">
+            {/* Header Area with Gradient */}
+            <div className="bg-gradient-to-b from-blue-100 to-white pt-12 pb-4 px-6 relative">
+                 <div className="flex justify-between items-start mb-6">
+                     <div className="flex items-center gap-4">
+                         <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop" className="w-16 h-16 rounded-full border-2 border-white shadow-md object-cover" />
+                         <div>
+                             <div className="text-lg font-bold text-gray-800">微信名称</div>
+                         </div>
+                     </div>
+                     <div className="flex gap-4">
+                         <button className="flex flex-col items-center gap-1 text-gray-600">
+                             <FileText size={20} />
+                             <span className="text-[10px] scale-90">开发票</span>
+                         </button>
+                         <button className="flex flex-col items-center gap-1 text-gray-600">
+                             <Phone size={20} />
+                             <span className="text-[10px] scale-90">联系客服</span>
+                         </button>
+                         <button className="flex flex-col items-center gap-1 text-gray-600">
+                             <Settings size={20} />
+                             <span className="text-[10px] scale-90">设置</span>
+                         </button>
+                     </div>
+                 </div>
+
+                 {/* Tabs */}
+                 <div className="flex justify-around items-center relative">
+                     <button onClick={() => setMineView('SESSIONS')} className={`pb-2 text-sm font-bold relative transition-colors ${mineView === 'SESSIONS' ? 'text-gray-900' : 'text-gray-400'}`}>
+                         我的场次
+                         {mineView === 'SESSIONS' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 rounded-full"></div>}
+                     </button>
+                     <button onClick={() => setMineView('TICKETS')} className={`pb-2 text-sm font-bold relative transition-colors ${mineView === 'TICKETS' ? 'text-gray-900' : 'text-gray-400'}`}>
+                         我的票券
+                         {mineView === 'TICKETS' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 rounded-full"></div>}
+                     </button>
+                     <button onClick={() => setMineView('COUPONS')} className={`pb-2 text-sm font-bold relative transition-colors ${mineView === 'COUPONS' ? 'text-gray-900' : 'text-gray-400'}`}>
+                         我的优惠券
+                         {mineView === 'COUPONS' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 rounded-full"></div>}
+                     </button>
+                     <button onClick={() => setMineView('MERCH')} className={`pb-2 text-sm font-bold relative transition-colors ${mineView === 'MERCH' ? 'text-gray-900' : 'text-gray-400'}`}>
+                         我的周边
+                         {mineView === 'MERCH' && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1 bg-blue-500 rounded-full"></div>}
+                     </button>
+                 </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+                {mineView === 'TICKETS' && (
+                    <>
+                        {/* Card 1: Pending */}
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm relative">
+                            <div className="flex justify-between items-center p-3 pb-0">
+                                <div className="flex items-center gap-2">
+                                     <span className="bg-blue-500 text-white text-[10px] px-2 py-1 rounded-tr-lg rounded-bl-lg font-bold">待使用票券</span>
+                                     <span className="text-[10px] text-gray-400 font-mono">123422343234</span>
+                                </div>
+                                <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full">有效期30天</span>
+                            </div>
+                            <div className="p-4 pt-3">
+                                <div className="space-y-2 text-xs text-gray-500 mb-3">
+                                    <div className="flex justify-between"><span>票券类型：</span><span className="text-gray-800 font-bold">【官方购买】单人票</span></div>
+                                    <div className="flex justify-between"><span>兑换时间：</span><span className="text-gray-800">2025-6-17 13:22</span></div>
+                                    <div className="flex justify-between"><span>所属门店：</span><span className="text-gray-800">北京·ClubMedJoyview延庆度假村</span></div>
+                                </div>
+                                <div className="flex justify-between items-center mt-4">
+                                    <button className="border border-gray-300 text-gray-400 text-xs px-3 py-1.5 rounded disabled:opacity-50">已赠送</button>
+                                    <button className="bg-emerald-500 text-white text-xs px-4 py-1.5 rounded font-bold shadow-md shadow-emerald-200">去预约</button>
+                                </div>
+                            </div>
+                        </div>
+
+                         {/* Card 2: Pending with tags */}
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm relative">
+                            <div className="flex justify-between items-center p-3 pb-0">
+                                <div className="flex items-center gap-2">
+                                     <span className="bg-blue-400 text-white text-[10px] px-2 py-1 rounded-tr-lg rounded-bl-lg font-bold">待使用票券</span>
+                                     <span className="text-[10px] text-gray-400 font-mono">123422343234</span>
+                                </div>
+                                <div className="flex gap-1">
+                                    <span className="text-[9px] bg-yellow-100 text-orange-500 px-1.5 py-0.5 rounded">🎁 新人优惠活动</span>
+                                    <span className="text-[9px] bg-orange-500 text-white px-2 py-0.5 rounded-full">有效期30天</span>
+                                </div>
+                            </div>
+                            <div className="p-4 pt-3">
+                                <div className="space-y-2 text-xs text-gray-500">
+                                    <div className="flex justify-between"><span>票券类型：</span><span className="text-gray-800 font-bold">【美团】单人票</span></div>
+                                    <div className="flex justify-between"><span>场次地点：</span><span className="text-gray-800">2025-6-17 13:22</span></div>
+                                    <div className="flex justify-between"><span>所属门店：</span><span className="text-gray-800">北京·ClubMedJoyview延庆度假村</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 3: Redeemed */}
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm relative opacity-80">
+                             <div className="flex justify-between items-center p-3 pb-0">
+                                <div className="flex items-center gap-2">
+                                     <span className="bg-emerald-500 text-white text-[10px] px-2 py-1 rounded-tr-lg rounded-bl-lg font-bold">已核销</span>
+                                </div>
+                            </div>
+                            <div className="p-4 pt-3 relative">
+                                <div className="space-y-2 text-xs text-gray-500">
+                                    <div className="flex justify-between"><span>票券类型：</span><span className="text-gray-800 font-bold">【美团】2人票</span></div>
+                                    <div className="flex justify-between"><span>场次地点：</span><span className="text-gray-800">2025-6-17 13:22</span></div>
+                                    <div className="flex justify-between"><span>所属门店：</span><span className="text-gray-800">北京·ClubMedJoyview延庆度假村</span></div>
+                                </div>
+                                {/* Watermark */}
+                                <div className="absolute right-4 bottom-2 w-20 h-20 border-2 border-emerald-500 rounded-full flex items-center justify-center text-emerald-500 font-black opacity-20 -rotate-12 text-xl">
+                                    已核销
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Card 4: Expired */}
+                        <div className="bg-white rounded-xl overflow-hidden shadow-sm relative grayscale opacity-70">
+                             <div className="flex justify-between items-center p-3 pb-0">
+                                <div className="flex items-center gap-2">
+                                     <span className="bg-gray-500 text-white text-[10px] px-2 py-1 rounded-tr-lg rounded-bl-lg font-bold">已失效</span>
+                                </div>
+                            </div>
+                            <div className="p-4 pt-3 relative">
+                                <div className="space-y-2 text-xs text-gray-500">
+                                    <div className="flex justify-between"><span>场次时间：</span><span className="text-gray-800 font-bold">【官方购买】单人票</span></div>
+                                    <div className="flex justify-between"><span>场次地点：</span><span className="text-gray-800">2025-6-17 13:22</span></div>
+                                    <div className="flex justify-between"><span>所属门店：</span><span className="text-gray-800">北京·ClubMedJoyview延庆度假村</span></div>
+                                </div>
+                                {/* Watermark */}
+                                <div className="absolute right-4 bottom-2 w-20 h-20 border-2 border-gray-500 rounded-full flex items-center justify-center text-gray-500 font-black opacity-20 -rotate-12 text-xl">
+                                    已失效
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+                
+                {mineView === 'SESSIONS' && (
+                    <div className="text-center py-10 opacity-20 flex flex-col items-center">
+                        <History size={40} className="mb-2" />
+                        <p className="text-xs font-bold uppercase tracking-widest">暂无历史记录</p>
+                    </div>
+                )}
+                {mineView === 'COUPONS' && (
+                     <div className="bg-white rounded-2xl shadow-sm border-l-8 border-orange-500 p-5 flex items-center justify-between">
+                        <div>
+                        <div className="text-2xl font-black text-orange-600">¥20</div>
+                        <div className="font-bold text-gray-700 text-sm">满¥199可用 · 周边专享</div>
+                        </div>
+                        <button className="text-[10px] font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-full">去使用</button>
+                    </div>
+                )}
+                {mineView === 'MERCH' && (
+                     userMerchTickets.map(ticket => (<div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border"><div className="flex justify-between items-start mb-2"><span className="font-bold text-gray-800 text-sm">{ticket.productName}</span><span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span></div><div className="text-[10px] text-gray-400">券码: {ticket.id}</div></div>))
+                )}
+            </div>
+        </div>
+    );
+  };
+
+  // --- 6. STAFF RENDERERS ---
   const renderAdminTickets = () => (
-    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
-       <div className="bg-white p-2 mx-4 mt-4 mb-2 rounded-lg flex shadow-sm border border-gray-100 shrink-0">
-         <button onClick={() => setTicketSubTab('GENERATE')} className={`flex-1 py-2 text-xs font-bold rounded-md ${ticketSubTab === 'GENERATE' ? 'bg-purple-100 text-purple-700' : 'text-gray-500'}`}>生成票券</button>
-         <button onClick={() => setTicketSubTab('LIST')} className={`flex-1 py-2 text-xs font-bold rounded-md ${ticketSubTab === 'LIST' ? 'bg-purple-100 text-purple-700' : 'text-gray-500'}`}>票券列表</button>
+    <div className="flex flex-col h-full bg-[#f5f7fa] animate-in fade-in font-sans">
+       {/* Tabs Header */}
+       <div className="bg-gradient-to-r from-indigo-50/50 via-white to-blue-50/50 shrink-0 border-b border-gray-100">
+         <div className="flex items-center justify-around">
+            <button 
+              onClick={() => setTicketSubTab('GENERATE')} 
+              className={`flex-1 py-3 text-sm font-medium relative transition-colors ${ticketSubTab === 'GENERATE' ? 'text-blue-600 font-bold' : 'text-gray-500'}`}
+            >
+              生成票券
+              {ticketSubTab === 'GENERATE' && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
+            </button>
+            <button 
+              onClick={() => setTicketSubTab('LIST')} 
+              className={`flex-1 py-3 text-sm font-medium relative transition-colors ${ticketSubTab === 'LIST' ? 'text-blue-600 font-bold' : 'text-gray-500'}`}
+            >
+              票券列表
+              {ticketSubTab === 'LIST' && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
+            </button>
+         </div>
        </div>
-       <div className="flex-1 p-4 overflow-y-auto space-y-4 no-scrollbar">
+
+       <div className="flex-1 overflow-y-auto no-scrollbar p-3">
          {ticketSubTab === 'GENERATE' ? (
-           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-2">
              <h3 className="font-bold mb-4 flex items-center gap-2 text-sm text-purple-600"><Ticket size={18} /> 配置新票券</h3>
              <div className="grid grid-cols-2 gap-3 mb-6">
                 {[1,2,3,4].map(n => <button key={n} className="border-2 border-gray-100 p-4 rounded-xl text-center hover:border-purple-500 transition-all"><Users size={20} className="mx-auto mb-1 text-gray-400" /><div className="text-xs font-bold">{n}人票</div></button>)}
@@ -140,74 +444,104 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
              <button className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">生成并发送</button>
            </div>
          ) : (
-           <div className="space-y-2">
-             {generatedTickets.length > 0 ? generatedTickets.map(t => (
-               <div key={t.id} className="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm">
-                 <div><div className="font-bold text-sm">{t.type}</div><div className="text-[10px] text-gray-400">{t.code}</div></div>
-                 <div className="text-xs text-green-600 font-bold">{t.status === 'ACTIVE' ? '有效' : '已用'}</div>
-               </div>
-             )) : <div className="text-center py-20 text-gray-300 text-xs">暂无生成记录</div>}
+           <div className="space-y-3">
+             {/* Filter Section */}
+             <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+                {/* Date Row */}
+                <div>
+                  <div className="text-sm font-bold text-gray-800 mb-2">查询日期：</div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex-1 h-9 bg-[#f5f7fa] rounded-lg px-3 flex items-center justify-between text-xs text-gray-400">
+                      <span>请选择日期</span>
+                      <Calendar size={14} className="text-blue-300" />
+                    </div>
+                    <span className="text-gray-800 font-bold text-sm">至</span>
+                    <div className="flex-1 h-9 bg-[#f5f7fa] rounded-lg px-3 flex items-center justify-between text-xs text-gray-400">
+                      <span>请选择日期</span>
+                      <Calendar size={14} className="text-blue-300" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {['昨天', '今天', '上个月', '本月'].map((label) => (
+                      <button 
+                        key={label}
+                        className={`flex-1 py-1.5 text-xs rounded-full border transition-all ${
+                          label === '今天' 
+                          ? 'bg-blue-400 text-white border-blue-400 shadow-md shadow-blue-100' 
+                          : 'bg-white text-blue-400 border-blue-200'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hotel Row */}
+                <div>
+                  <div className="text-sm font-bold text-gray-800 mb-2">查询酒店：</div>
+                  <div className="h-10 bg-[#f5f7fa] rounded-lg px-3 flex items-center justify-between text-xs text-gray-500 font-medium">
+                    <span>全部</span>
+                    <ChevronDown size={14} className="text-blue-400" />
+                  </div>
+                </div>
+             </div>
+
+             {/* Stats Section */}
+             <div className="bg-white rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-2">
+                   <div className="flex items-center gap-2">
+                      <div className="w-1 h-3.5 bg-blue-600 rounded-full"></div>
+                      <span className="font-bold text-gray-800 text-base">票券统计</span>
+                   </div>
+                   <ChevronDown size={16} className="text-gray-400" />
+                </div>
+
+                <div className="space-y-3">
+                   {/* Card 1 */}
+                   <div className="bg-[#e6f2ff]/50 rounded-lg p-4">
+                      <div className="text-center text-sm font-bold text-gray-700 mb-3">二维码生成票券</div>
+                      <div className="flex justify-between px-6 items-center">
+                         <div className="text-center">
+                            <div className="text-[10px] text-gray-400 mb-1">数量:</div>
+                            <div className="text-xl font-black text-[#2B7FF2] font-sans tracking-tight">5973 <span className="text-[10px] text-gray-400 font-normal ml-0.5">张</span></div>
+                         </div>
+                         <div className="text-center">
+                            <div className="text-[10px] text-gray-400 mb-1">人数:</div>
+                            <div className="text-xl font-black text-[#2B7FF2] font-sans tracking-tight">118102 <span className="text-[10px] text-gray-400 font-normal ml-0.5">人</span></div>
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Card 2 */}
+                   <div className="bg-[#e6f2ff]/50 rounded-lg p-4">
+                      <div className="text-center text-sm font-bold text-gray-700 mb-3">领取票券</div>
+                      <div className="flex justify-between px-6 items-center">
+                         <div className="text-center">
+                            <div className="text-[10px] text-gray-400 mb-1">数量:</div>
+                            <div className="text-xl font-black text-[#2B7FF2] font-sans tracking-tight">301271 <span className="text-[10px] text-gray-400 font-normal ml-0.5">张</span></div>
+                         </div>
+                         <div className="text-center">
+                            <div className="text-[10px] text-gray-400 mb-1">人数:</div>
+                            <div className="text-xl font-black text-[#2B7FF2] font-sans tracking-tight">912 <span className="text-[10px] text-gray-400 font-normal ml-0.5">人</span></div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+             
+             {/* List of generated tickets */}
+             <div className="space-y-2 mt-4">
+                 {generatedTickets.length > 0 ? generatedTickets.map(t => (
+                   <div key={t.id} className="bg-white p-3 rounded-lg border border-gray-100 flex justify-between items-center shadow-sm">
+                     <div><div className="font-bold text-sm text-gray-700">{t.type}</div><div className="text-[10px] text-gray-400">{t.code}</div></div>
+                     <div className="text-xs text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded">{t.status === 'ACTIVE' ? '有效' : '已用'}</div>
+                   </div>
+                 )) : null} 
+             </div>
            </div>
          )}
        </div>
-    </div>
-  );
-
-  const renderAdminData = () => (
-    <div className="flex flex-col h-full bg-slate-50 p-4 space-y-4 animate-in fade-in">
-      <div className="bg-white p-4 rounded-xl shadow-sm grid grid-cols-2 gap-4 border border-gray-100">
-        <div className="text-center"><div className="text-2xl font-bold text-purple-600">88%</div><div className="text-[10px] text-gray-400 font-bold">场次占有率</div></div>
-        <div className="text-center"><div className="text-2xl font-bold text-blue-600">¥12.4k</div><div className="text-[10px] text-gray-400 font-bold">今日总营收</div></div>
-      </div>
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-        <h4 className="font-bold text-sm mb-4">客流实时趋势</h4>
-        <div className="h-32 w-full bg-gray-50 rounded flex items-end justify-around p-2 gap-1">
-          {[40,60,80,30,90,70,50].map((h, i) => <div key={i} style={{height: `${h}%`}} className="w-full bg-purple-200 rounded-t hover:bg-purple-500 transition-all"></div>)}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAdminControl = () => (
-    <div className="flex flex-col h-full bg-slate-50 p-4 overflow-y-auto space-y-3 no-scrollbar animate-in fade-in">
-      <div className="bg-purple-600 p-4 rounded-xl text-white flex justify-between items-center shadow-lg shadow-purple-200">
-        <div><div className="text-xs opacity-80">当前正在进行</div><div className="text-lg font-bold">LUMI魔法学院·02场</div></div>
-        <Activity size={24} className="animate-pulse" />
-      </div>
-      <div className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">待转场场次</div>
-      {adminSessions.map(session => (
-        <div key={session.id} className="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-400">{session.id}</div>
-            <div><div className="text-xs font-bold text-gray-700">{session.time} 场</div><div className="text-[10px] text-gray-400">{session.count}人已签到</div></div>
-          </div>
-          {session.status === 'TRANSFERRED' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold border border-green-100">
-              <CheckCircle size={12}/> 已转入
-            </div>
-          ) : (
-            <button 
-              onClick={() => handleTransferToBackstage(session)}
-              className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all"
-            >
-              <ArrowRightLeft size={12}/> 转入后厅
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderAdminIdentity = () => (
-    <div className="flex flex-col h-full bg-slate-50 p-6 text-center animate-in fade-in">
-      <div className="w-24 h-24 bg-white rounded-full mx-auto mb-4 border-4 border-white shadow-lg flex items-center justify-center text-4xl">👩‍💼</div>
-      <h2 className="text-xl font-bold text-gray-800">店长 · 李晓明</h2>
-      <p className="text-xs text-gray-400 mt-1">ID: STAFF_88291</p>
-      <div className="mt-8 space-y-3 text-left">
-        <button className="w-full bg-white p-4 rounded-xl flex items-center justify-between font-bold text-sm border border-gray-100 shadow-sm"><span>系统设置</span><ChevronRight size={16} className="text-gray-300"/></button>
-        <button className="w-full bg-white p-4 rounded-xl flex items-center justify-between font-bold text-sm border border-gray-100 shadow-sm"><span>权限管理</span><ChevronRight size={16} className="text-gray-300"/></button>
-        <button className="w-full bg-red-50 text-red-600 p-4 rounded-xl font-bold mt-10 text-sm">退出工作台</button>
-      </div>
     </div>
   );
 
@@ -245,7 +579,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                   <div className="flex justify-between items-center mb-1"><span className="font-bold text-gray-800 text-sm">{ticket.productName}</span><span className="text-[10px] px-2 py-0.5 rounded bg-orange-100 text-orange-600">待核销</span></div>
                   <div className="text-[10px] text-gray-400 mb-4">券码: {ticket.id}</div>
                   <button 
-                    onClick={() => handleConfirmRedeem(ticket.id)}
+                    onClick={() => {
+                        const updated = userMerchTickets.map(t => t.id === ticket.id ? { ...t, status: 'REDEEMED' as const } : t);
+                        setUserMerchTickets(updated);
+                        localStorage.setItem('vr_user_merch', JSON.stringify(updated));
+                        window.dispatchEvent(new Event('storage_update'));
+                        alert('已核销成功！');
+                    }}
                     className="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold shadow-md shadow-blue-100 active:scale-[0.98] transition-all"
                   >
                     确认核销并交付
@@ -269,114 +609,93 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           </div>
         )}
       </div>
-
-      {editingProduct && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)}></div>
-          <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 max-h-[90%] overflow-y-auto no-scrollbar">
-             <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">{products.find(p => p.id === editingProduct.id) ? '编辑商品信息' : '上架新商品'}</h3><X size={20} className="text-gray-400 cursor-pointer" onClick={() => setEditingProduct(null)}/></div>
-             <div className="space-y-4">
-               <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-               <div className="space-y-1">
-                 <label className="text-[10px] font-bold text-gray-400 uppercase">商品图片</label>
-                 <div className="flex gap-3">
-                   <div className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
-                     {editingProduct.image ? <img src={editingProduct.image} className="w-full h-full object-cover" /> : <ImageIcon size={24} className="text-gray-300" />}
-                   </div>
-                   <div className="flex-1 space-y-2">
-                     <input type="text" placeholder="输入图片URL" value={editingProduct.image} onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} className="w-full border rounded-lg px-3 py-2 text-xs" />
-                     <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full py-1.5 border border-purple-200 text-purple-600 rounded-lg text-[10px] font-bold bg-purple-50 flex items-center justify-center gap-1.5"><Upload size={12} /> 从本地上传</button>
-                   </div>
-                 </div>
-               </div>
-               <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">商品名称</label><input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full border rounded-lg px-3 py-2 text-sm font-bold" /></div>
-               <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">售价 (¥)</label><input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2 text-sm font-mono" /></div>
-                 <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">积分点数 (pts)</label><input type="number" value={editingProduct.points} onChange={e => setEditingProduct({...editingProduct, points: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2 text-sm font-mono" /></div>
-               </div>
-               <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">库存数量</label><input type="number" value={editingProduct.stock || 0} onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2 text-sm font-mono" /></div>
-               <button onClick={() => {
-                 if (!editingProduct.name || !editingProduct.image) { alert("请完整填写商品名称和图片"); return; }
-                 const updated = products.find(p => p.id === editingProduct.id) 
-                   ? products.map(p => p.id === editingProduct.id ? editingProduct : p)
-                   : [...products, editingProduct];
-                 saveProducts(updated);
-                 setEditingProduct(null);
-               }} className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl mt-4 flex items-center justify-center gap-2 shadow-lg shadow-purple-200 active:scale-[0.98] transition-all"><Save size={18}/> 保存并同步至门店</button>
-             </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
-  // --- 6. GUEST RENDERERS ---
-  const GuestHome = () => (
-    <div className="flex flex-col h-full bg-white">
-      <div className="relative h-64 w-full">
-        <img src="https://images.unsplash.com/photo-1626379953822-baec19c3accd?q=80&w=1000" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-        <div className="absolute top-4 left-4 z-20"><div className="flex items-center gap-1 text-white bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20"><MapPin size={12} /><span className="text-xs font-bold max-w-[120px] truncate">{homeStore}</span></div></div>
-        <div className="absolute bottom-4 left-4 text-white"><div className="text-[10px] font-bold bg-orange-500/90 backdrop-blur-sm px-2 py-0.5 rounded inline-block mb-2">XR大空间旗舰店</div><h1 className="text-2xl font-bold leading-tight">LUMI魔法学院<br />沉浸式奇幻之旅</h1></div>
-      </div>
-      <div className="px-4 mt-4 grid grid-cols-2 gap-3 mb-6">
-        <button className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-xl h-28 flex flex-col justify-center"><CalendarDays size={24} className="mb-2" /><div className="font-bold text-lg">预约购票</div></button>
-        <button className="bg-white rounded-2xl p-4 text-gray-800 shadow-lg border h-28 flex flex-col justify-center"><Gift size={24} className="mb-2 text-purple-500" /><div className="font-bold text-lg">兑换体验券</div></button>
-      </div>
-      <div className="px-4 space-y-6 mb-10">
-        {/* Merch Store Module (NOW ABOVE PROJECT INTRO) */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-1"><h3 className="font-bold text-gray-800 flex items-center gap-1.5"><ShoppingCart size={16} className="text-purple-500" /> 周边商城</h3><button onClick={() => setShowStore(true)} className="text-[10px] font-bold text-purple-500">更多好物</button></div>
-          <button onClick={() => setShowStore(true)} className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-all"><img src="https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=800&fit=crop" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 to-transparent"></div><div className="absolute inset-0 p-5 flex flex-col justify-center text-white"><div className="text-xs text-indigo-200 font-bold mb-1 flex items-center gap-1"><Sparkles size={12}/> 魔法匠心</div><div className="text-xl font-bold mb-1">魔法学院周边上新</div></div></button>
-        </div>
-
-        {/* Project Intro Module (NOW BELOW MERCH STORE) */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-1"><h3 className="font-bold text-gray-800 flex items-center gap-1.5"><Sparkles size={16} className="text-blue-500" /> 项目介绍</h3><button onClick={() => setShowIntro(true)} className="text-[10px] font-bold text-blue-500">查看详情</button></div>
-          <button onClick={() => setShowIntro(true)} className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md group active:scale-[0.98] transition-all border border-blue-50"><img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent"></div><div className="absolute inset-0 p-4 flex flex-col justify-center text-left"><div className="text-xs text-blue-200 font-bold mb-1 flex items-center gap-1"><BookOpen size={12}/> 魔法史诗</div><div className="text-lg font-bold text-white mb-1">探索魔法学院奥秘</div><div className="text-[10px] text-white/70 line-clamp-2 max-w-[180px]">在300平米物理空间内，开启属于你的魔法传奇...</div></div></button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const GuestMine = () => (
-    <div className="flex flex-col h-full bg-white">
-      {mineView === 'MENU' && (
-        <div className="flex flex-col">
-          <div className="bg-blue-600 pt-10 pb-16 px-6 text-white rounded-b-[3rem] relative overflow-hidden"><div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div><div className="relative z-10 flex items-center gap-5 mt-4"><div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-4xl shadow-2xl border-4 border-blue-400">👨‍🚀</div><div><h2 className="text-2xl font-bold">天选体验官</h2><div className="flex items-center gap-2 mt-1"><span className="bg-blue-500/50 px-2 py-0.5 rounded-full text-[10px] border border-blue-300">钻石学徒</span><span className="text-blue-100 text-xs font-bold">积分: {userPoints}</span></div></div></div></div>
-          <div className="px-5 -mt-8 relative z-10 space-y-4">
-            <div className="bg-white rounded-2xl shadow-xl border overflow-hidden divide-y">
-              <button className="w-full p-5 flex items-center justify-between hover:bg-gray-50"><div className="flex items-center gap-4"><Ticket size={20} className="text-blue-500"/> <span className="font-bold text-gray-700">我的票券</span></div><ChevronRight size={18} className="text-gray-300"/></button>
-              <button className="w-full p-5 flex items-center justify-between hover:bg-gray-50"><div className="flex items-center gap-4"><Percent size={20} className="text-orange-500"/> <span className="font-bold text-gray-700">我的优惠券</span></div><ChevronRight size={18} className="text-gray-300"/></button>
-              <button className="w-full p-5 flex items-center justify-between hover:bg-gray-50"><div className="flex items-center gap-4"><Calendar size={20} className="text-emerald-500"/> <span className="font-bold text-gray-700">我的场次</span></div><ChevronRight size={18} className="text-gray-300"/></button>
-              <button onClick={() => setMineView('MERCH')} className="w-full p-5 flex items-center justify-between hover:bg-gray-50"><div className="flex items-center gap-4"><ShoppingBag size={20} className="text-purple-500"/> <span className="font-bold text-gray-700">我的周边商品</span></div><div className="flex items-center gap-2">{userMerchTickets.filter(t => t.status === 'PENDING').length > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{userMerchTickets.filter(t => t.status === 'PENDING').length}</span>}<ChevronRight size={18} className="text-gray-300"/></div></button>
-            </div>
-          </div>
-        </div>
-      )}
-      {mineView === 'MERCH' && (
-        <div className="flex flex-col h-full bg-slate-50 animate-in slide-in-from-right">
-          <div className="bg-white p-4 flex items-center border-b sticky top-0 z-10"><button onClick={() => setMineView('MENU')} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button><h2 className="flex-1 text-center font-bold">我的周边商品</h2><div className="w-8"></div></div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-20">{userMerchTickets.map(ticket => (<div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border"><div className="flex justify-between items-start mb-2"><span className="font-bold text-gray-800 text-sm">{ticket.productName}</span><span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span></div><div className="text-[10px] text-gray-400">券码: {ticket.id}</div></div>))}</div>
-        </div>
-      )}
-    </div>
-  );
-
-  // --- 7. FINAL RETURN LOGIC (DECOUPLED) ---
+  // --- 7. FINAL RETURN LOGIC ---
   if (userType === 'STAFF') {
     return (
       <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
-        <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-10 shrink-0 border-b border-gray-100">
-          <div className="font-bold text-lg text-gray-800">前店管理工作台</div>
-          <div className="text-[10px] px-2 py-1 bg-purple-100 text-purple-700 rounded-full border border-purple-200 font-black tracking-wider uppercase">Staff Mode</div>
+        <div className="bg-white px-4 py-3 shrink-0 border-b border-gray-100 shadow-sm z-10">
+          {adminTab === 'TICKETS' ? (
+             <div className="relative flex items-center justify-center pt-2">
+                <div className="font-bold text-xl text-gray-800">票券</div>
+                <div className="absolute right-0 flex items-center gap-4">
+                   <button className="flex flex-col items-center justify-center text-gray-600 gap-0.5">
+                      <Gift size={20} strokeWidth={1.5} />
+                      <span className="text-[10px]">优惠</span>
+                   </button>
+                   <button className="flex flex-col items-center justify-center text-gray-600 gap-0.5">
+                      <Search size={20} strokeWidth={1.5} />
+                      <span className="text-[10px]">查询</span>
+                   </button>
+                </div>
+             </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div className="font-bold text-lg text-gray-800">前店管理工作台</div>
+              <div className="text-[10px] px-2 py-1 bg-purple-100 text-purple-700 rounded-full border border-purple-200 font-black tracking-wider uppercase">Staff Mode</div>
+            </div>
+          )}
         </div>
         <div className="flex-1 relative overflow-hidden">
           {adminTab === 'TICKETS' && renderAdminTickets()}
-          {adminTab === 'DATA' && renderAdminData()}
-          {adminTab === 'CONTROL' && renderAdminControl()}
-          {adminTab === 'IDENTITY' && renderAdminIdentity()}
+          {adminTab === 'CONTROL' && (
+            <div className="flex flex-col h-full bg-slate-50 p-4 overflow-y-auto space-y-3 no-scrollbar animate-in fade-in">
+              <div className="bg-purple-600 p-4 rounded-xl text-white flex justify-between items-center shadow-lg shadow-purple-200">
+                <div><div className="text-xs opacity-80">当前正在进行</div><div className="text-lg font-bold">LUMI魔法学院·02场</div></div>
+                <Activity size={24} className="animate-pulse" />
+              </div>
+              <div className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">待转场场次</div>
+              {adminSessions.map(session => (
+                <div key={session.id} className="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-400">{session.id}</div>
+                    <div><div className="text-xs font-bold text-gray-700">{session.time} 场</div><div className="text-[10px] text-gray-400">{session.count}人已签到</div></div>
+                  </div>
+                  {session.status === 'TRANSFERRED' ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold border border-green-100">
+                      <CheckCircle size={12}/> 已转入
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleTransferToBackstage(session)}
+                      className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all"
+                    >
+                      <ArrowRightLeft size={12}/> 转入后厅
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {adminTab === 'IDENTITY' && (
+             <div className="flex flex-col h-full bg-slate-50 p-6 text-center animate-in fade-in">
+             <div className="w-24 h-24 bg-white rounded-full mx-auto mb-4 border-4 border-white shadow-lg flex items-center justify-center text-4xl">👩‍💼</div>
+             <h2 className="text-xl font-bold text-gray-800">店长 · 李晓明</h2>
+             <p className="text-xs text-gray-400 mt-1">ID: STAFF_88291</p>
+             <div className="mt-8 space-y-3 text-left">
+               <button className="w-full bg-white p-4 rounded-xl flex items-center justify-between font-bold text-sm border border-gray-100 shadow-sm"><span>系统设置</span><ChevronRight size={16} className="text-gray-300"/></button>
+               <button className="w-full bg-white p-4 rounded-xl flex items-center justify-between font-bold text-sm border border-gray-100 shadow-sm"><span>权限管理</span><ChevronRight size={16} className="text-gray-300"/></button>
+               <button className="w-full bg-red-50 text-red-600 p-4 rounded-xl font-bold mt-10 text-sm">退出工作台</button>
+             </div>
+           </div>
+          )}
           {adminTab === 'MERCH' && renderAdminMerch()}
+          {adminTab === 'DATA' && (
+            <div className="flex flex-col h-full bg-slate-50 p-4 space-y-4 animate-in fade-in">
+              <div className="bg-white p-4 rounded-xl shadow-sm grid grid-cols-2 gap-4 border border-gray-100">
+                <div className="text-center"><div className="text-2xl font-bold text-purple-600">88%</div><div className="text-[10px] text-gray-400 font-bold">场次占有率</div></div>
+                <div className="text-center"><div className="text-2xl font-bold text-blue-600">¥12.4k</div><div className="text-[10px] text-gray-400 font-bold">今日总营收</div></div>
+              </div>
+              <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h4 className="font-bold text-sm mb-4">客流实时趋势</h4>
+                <div className="h-32 w-full bg-gray-50 rounded flex items-end justify-around p-2 gap-1">
+                  {[40,60,80,30,90,70,50].map((h, i) => <div key={i} style={{height: `${h}%`}} className="w-full bg-purple-200 rounded-t hover:bg-purple-500 transition-all"></div>)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div className="bg-white border-t border-gray-100 flex justify-around items-center h-20 shrink-0 pb-4 z-10 px-2">
           {[
@@ -403,7 +722,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       </div>
 
       <div className="absolute bottom-0 w-full h-18 bg-white border-t flex justify-around items-center px-6 pb-2 shrink-0 z-40">
-        <button onClick={() => {setActiveTab('HOME'); setMineView('MENU');}} className={`flex flex-col items-center gap-1.5 ${activeTab === 'HOME' ? 'text-blue-600' : 'text-gray-400'}`}><Home size={22} /><span className="text-[10px] font-bold">首页</span></button>
+        <button onClick={() => {setActiveTab('HOME'); setMineView('TICKETS');}} className={`flex flex-col items-center gap-1.5 ${activeTab === 'HOME' ? 'text-blue-600' : 'text-gray-400'}`}><Home size={22} /><span className="text-[10px] font-bold">首页</span></button>
         <div className="relative -top-5"><button className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white active:scale-90 transition-transform"><ScanLine size={24} /></button></div>
         <button onClick={() => setActiveTab('MINE')} className={`flex flex-col items-center gap-1.5 ${activeTab === 'MINE' ? 'text-blue-600' : 'text-gray-400'}`}><User size={22} /><span className="text-[10px] font-bold">我的</span></button>
       </div>
@@ -481,18 +800,40 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           </div>
         </div>
       )}
-
-      {showIntro && (
-        <div className="absolute inset-0 z-[150] bg-white animate-in slide-in-from-bottom flex flex-col">
-          <div className="p-4 flex items-center border-b sticky top-0 bg-white"><button onClick={() => setShowIntro(false)} className="p-1 rounded-full"><ChevronLeft size={24} /></button><h2 className="flex-1 text-center font-bold">项目介绍</h2><div className="w-8"></div></div>
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="rounded-xl w-full h-48 object-cover shadow-lg" />
-            <section><h3 className="font-bold text-lg mb-2 text-purple-600">剧情背景</h3><p className="text-sm text-gray-600 leading-relaxed italic border-l-4 border-purple-200 pl-4">"在星辉交织的深夜，古老的LUMI学院钟声敲响。当现实与幻象的边界模糊，你作为天选学徒，将穿梭于破碎的时空缝隙中，寻找遗落的永恒之核..."</p></section>
-            <section><h3 className="font-bold text-lg mb-2 text-blue-600">体验亮点</h3><ul className="space-y-3 text-sm text-gray-600">
-              <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div><span>300平米大空间自由行走，物理空间与虚拟场景1:1映射</span></li>
-              <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div><span>多维触感反馈，感受指尖跃动的魔法能量</span></li>
-              <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0"></div><span>实时多人协作，与同伴并肩作战破解次元谜题</span></li>
-            </ul></section>
+      
+      {/* REVERTED REDEEM FLOW */}
+      {showRedeemFlow && (
+        <div className="absolute inset-0 z-[150] bg-gray-50 animate-in slide-in-from-bottom flex flex-col">
+          <div className="p-4 flex items-center border-b bg-white z-20"><button onClick={() => setShowRedeemFlow(false)} className="p-1 rounded-full"><ChevronLeft size={24} /></button><h2 className="flex-1 text-center font-bold">兑换体验券</h2><div className="w-8"></div></div>
+          <div className="p-8 text-center flex-1 flex flex-col justify-center gap-10">
+             <div className="w-32 h-32 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto border-4 border-purple-100 relative overflow-hidden group">
+                <QrCode size={64} className="text-purple-600 group-active:scale-110 transition-transform" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500 animate-pulse"></div>
+             </div>
+             <div>
+                <h3 className="font-bold text-xl mb-2">输入或扫描兑换码</h3>
+                <p className="text-xs text-gray-400">请核对纸质体验券上的8位魔法验证码</p>
+             </div>
+             <div className="bg-white p-6 rounded-3xl shadow-sm border border-purple-100">
+                <input 
+                  type="text" 
+                  maxLength={8}
+                  placeholder="请输入8位魔法码" 
+                  value={redeemCode}
+                  onChange={e => setRedeemCode(e.target.value.toUpperCase())}
+                  className="w-full bg-gray-50 border-none rounded-xl px-4 py-4 text-center font-mono text-2xl tracking-[0.3em] focus:ring-2 focus:ring-purple-200 outline-none" 
+                />
+             </div>
+             <button 
+                onClick={() => {
+                   if(redeemCode.length < 4) { alert("请输入有效的兑换码"); return; }
+                   alert('兑换成功！票券已放入[我的票券]'); 
+                   setShowRedeemFlow(false);
+                }}
+                className="w-full bg-purple-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-200 active:scale-95 transition-transform"
+             >
+                立即唤醒体验
+             </button>
           </div>
         </div>
       )}
