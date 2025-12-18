@@ -93,12 +93,10 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen bg-slate-900 overflow-hidden">
-      
-      {/* Left Sidebar Navigation */}
       <div className="w-64 md:w-72 bg-slate-800 border-r border-slate-700 flex flex-col shadow-xl z-20">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-white text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            VR Space Admin
+            LUMI魔法学院XR大空间平台
           </h1>
           <p className="text-slate-400 text-xs mt-1">售票体验VR大空间平台系统</p>
         </div>
@@ -118,35 +116,24 @@ const App: React.FC = () => {
                 {getIcon(item.icon)}
               </div>
               <span className="font-medium text-sm text-left">{item.label}</span>
-              
-              {/* Red Dot Badge */}
               {badges[item.id] && (
                 <span className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-800 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
               )}
             </button>
           ))}
         </div>
-
-        <div className="p-4 border-t border-slate-700 text-center text-slate-500 text-xs">
-           © 2024 VR Space Platform
-        </div>
       </div>
 
-      {/* Right Content Area */}
       <div className="flex-1 bg-slate-900 relative flex items-center justify-center p-8">
-        {/* Background Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
            <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-purple-900/20 rounded-full blur-[120px]"></div>
            <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900/20 rounded-full blur-[100px]"></div>
         </div>
 
-        {/* The Mobile Simulator */}
         <div className="relative z-10 scale-[0.9] md:scale-100 transition-transform duration-500">
           <MobileFrame statusBarColor={currentView === ViewType.GUEST_CHAT ? 'bg-white' : 'bg-gray-50'}>
             {renderView()}
           </MobileFrame>
-          
-          {/* Label below phone */}
           <div className="text-center mt-6 text-slate-400 text-sm font-medium tracking-wide uppercase">
             Current View: {NAV_ITEMS.find(n => n.id === currentView)?.label}
           </div>
