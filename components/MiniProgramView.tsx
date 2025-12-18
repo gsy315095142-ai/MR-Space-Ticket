@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2 } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface MiniProgramViewProps {
@@ -10,8 +10,8 @@ interface MiniProgramViewProps {
 
 const MOCK_PRODUCTS: MerchItem[] = [
   { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1589710751893-f9a6770ad71b?w=400&h=400&fit=crop', points: 500, price: 128 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=400&h=400&fit=crop', points: 800, price: 299 },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1590534247854-e97d5e3fe367?w=400&h=400&fit=crop', points: 500, price: 128 },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1612197538223-e652419076ae?w=400&h=400&fit=crop', points: 800, price: 299 },
 ];
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigger, initialAdminTab }) => {
@@ -287,6 +287,36 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     </div>
   );
 
+  const IntroModal = () => (
+    <div className="absolute inset-0 z-[110] bg-white animate-in slide-in-from-bottom duration-300 flex flex-col">
+      <div className="p-4 flex items-center border-b sticky top-0 z-10 bg-white">
+        <button onClick={() => setShowIntro(false)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
+        <h2 className="flex-1 text-center font-bold">魔法学院介绍</h2>
+        <div className="w-8"></div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-10">
+        <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="rounded-xl w-full h-48 object-cover shadow-lg" alt="Intro" />
+        <section>
+          <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-purple-600"><BookOpen size={20}/> 剧情背景</h3>
+          <p className="text-sm text-gray-600 leading-relaxed italic border-l-4 border-purple-200 pl-4 mb-4">
+            "在星辉交织的深夜，古老的LUMI学院钟声敲响。当现实与幻象的边界模糊，你作为天选学徒，将穿梭于破碎的时空缝隙中..."
+          </p>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            本项目是一次深度XR沉浸式体验。通过自研的空间定位技术，玩家可以在300平米的场地内自由探索。你将经历森林、神庙与深渊，利用手势识别释放魔法，拯救崩塌的魔法世界。
+          </p>
+        </section>
+        <section className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <h3 className="font-bold text-sm mb-3">体验指南</h3>
+          <ul className="text-xs text-gray-500 space-y-3">
+            <li className="flex items-center gap-2"><Info size={14} className="text-blue-500"/> 适合年龄：10-55岁</li>
+            <li className="flex items-center gap-2"><Clock size={14} className="text-blue-500"/> 体验时长：30-40分钟</li>
+            <li className="flex items-center gap-2"><Users size={14} className="text-blue-500"/> 组队人数：2-4人</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+
   // Main UI Logic
   if (userType === 'STAFF') {
     return (
@@ -340,6 +370,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
               </div>
             </div>
 
+            {/* Main Action Buttons */}
             <div className="px-4 mt-4 relative z-10 grid grid-cols-2 gap-3 mb-6">
               <button onClick={() => setBookingStep('BASIC' as any)} className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-xl h-28 flex flex-col justify-center relative overflow-hidden active:scale-95 transition-transform">
                 <CalendarDays size={24} className="mb-2" />
@@ -353,15 +384,40 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
               </button>
             </div>
 
-            <div className="px-4 space-y-4 mb-10">
-              <button onClick={() => setShowStore(true)} className="w-full bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-5 text-left group hover:border-purple-300 transition-all">
-                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shadow-inner group-hover:scale-110 transition-transform"><ShoppingCart size={28}/></div>
-                <div className="flex-1">
-                  <div className="font-bold text-gray-800 text-lg">魔法学院周边商城</div>
-                  <div className="text-xs text-gray-400 mt-1">正版周边，支持积分兑换</div>
+            <div className="px-4 space-y-6 mb-10">
+              {/* Shopping Mall Module (SWAPPED & ENHANCED) */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-1.5"><ShoppingCart size={16} className="text-purple-500" /> 周边商城</h3>
+                  <button onClick={() => setShowStore(true)} className="text-[10px] font-bold text-purple-500">更多好物</button>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center"><ChevronRight size={18} className="text-gray-300" /></div>
-              </button>
+                <button onClick={() => setShowStore(true)} className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md group active:scale-[0.98] transition-all">
+                  <img src="https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=800&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="mall preview" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 to-transparent"></div>
+                  <div className="absolute inset-0 p-5 flex flex-col justify-center text-left">
+                    <div className="text-xs text-indigo-200 font-bold mb-1 flex items-center gap-1"><Sparkles size={12}/> 魔法匠心</div>
+                    <div className="text-xl font-bold text-white mb-1">魔法学院周边上新</div>
+                    <div className="text-[10px] text-white/70 line-clamp-2 max-w-[200px]">正版定制徽章、发光法杖、学院斗篷... 支持积分超值兑换。</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Project Introduction Module */}
+              <div className="flex flex-col gap-3 opacity-90">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-1.5"><Sparkles size={16} className="text-blue-500" /> 项目介绍</h3>
+                  <button onClick={() => setShowIntro(true)} className="text-[10px] font-bold text-blue-500">查看详情</button>
+                </div>
+                <button onClick={() => setShowIntro(true)} className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md group active:scale-[0.98] transition-all border border-blue-50">
+                  <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="lore preview" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent"></div>
+                  <div className="absolute inset-0 p-4 flex flex-col justify-center text-left">
+                    <div className="text-xs text-blue-200 font-bold mb-1 flex items-center gap-1"><BookOpen size={12}/> 魔法史诗</div>
+                    <div className="text-lg font-bold text-white mb-1">探索魔法学院奥秘</div>
+                    <div className="text-[10px] text-white/70 line-clamp-2 max-w-[180px]">在300平米物理空间内，开启属于你的魔法传奇...</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -382,7 +438,15 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                   </div>
                 </div>
                 <div className="px-5 -mt-8 relative z-10 space-y-4">
-                  <div className="bg-white rounded-2xl shadow-xl p-2 border border-white overflow-hidden">
+                  <div className="bg-white rounded-2xl shadow-xl border border-white overflow-hidden divide-y divide-gray-50">
+                    <button onClick={() => setMineView('TICKETS' as any)} className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4"><Ticket size={20} className="text-blue-500"/> <span className="font-bold text-gray-700">我的票券</span></div>
+                      <ChevronRight size={18} className="text-gray-300"/>
+                    </button>
+                    <button onClick={() => setMineView('SESSIONS' as any)} className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4"><Calendar size={20} className="text-emerald-500"/> <span className="font-bold text-gray-700">我的场次</span></div>
+                      <ChevronRight size={18} className="text-gray-300"/>
+                    </button>
                     <button onClick={() => setMineView('MERCH')} className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-4"><ShoppingBag size={20} className="text-purple-500"/> <span className="font-bold text-gray-700">我的周边商品</span></div>
                       <div className="flex items-center gap-2">
@@ -419,8 +483,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         </button>
       </div>
 
+      {showIntro && <IntroModal />}
+
       {showStore && (
-        <div className="absolute inset-0 z-[60] bg-gray-50 animate-in slide-in-from-bottom duration-300 flex flex-col">
+        <div className="absolute inset-0 z-[120] bg-gray-50 animate-in slide-in-from-bottom duration-300 flex flex-col">
           <div className="bg-white p-4 flex items-center border-b sticky top-0 z-10 shadow-sm">
             <button onClick={() => setShowStore(false)} className="p-1 hover:bg-gray-100 rounded-full"><ChevronLeft size={24} /></button>
             <h2 className="flex-1 text-center font-bold">周边商城</h2>
@@ -456,7 +522,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       )}
 
       {showConfirmModal && selectedProduct && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
           <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="font-bold text-lg mb-4 text-center">{confirmMethod === 'PURCHASE' ? '购买确认' : '兑换确认'}</h3>

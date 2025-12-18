@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 // Added ShoppingCart to the import list from lucide-react
 import { ShoppingBag, Tag, CheckCircle2, X, Barcode, Boxes, ShoppingCart } from 'lucide-react';
@@ -6,8 +5,8 @@ import { MerchItem } from '../types';
 
 const MOCK_PRODUCTS: MerchItem[] = [
   { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1589710751893-f9a6770ad71b?w=400&h=400&fit=crop', points: 500, price: 128 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=400&h=400&fit=crop', points: 800, price: 299 },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1590534247854-e97d5e3fe367?w=400&h=400&fit=crop', points: 500, price: 128 },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1612197538223-e652419076ae?w=400&h=400&fit=crop', points: 800, price: 299 },
 ];
 
 const OfflineStoreView: React.FC = () => {
@@ -44,7 +43,7 @@ const OfflineStoreView: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a] p-8 overflow-hidden">
       {/* Header Section */}
-      <div className="flex items-center justify-between mb-12 bg-[#2a2a2a] p-6 rounded-3xl border border-[#3a3a3a] shadow-2xl">
+      <div className="flex items-center justify-between mb-8 bg-[#2a2a2a] p-6 rounded-3xl border border-[#3a3a3a] shadow-2xl shrink-0">
         <div className="flex items-center gap-4">
           <div className="p-4 bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-2xl shadow-inner">
             <Boxes size={36} />
@@ -64,15 +63,15 @@ const OfflineStoreView: React.FC = () => {
       </div>
 
       {/* Realistic Shelf Area */}
-      <div className="flex-1 flex flex-col justify-start px-4">
+      <div className="flex-1 flex flex-col justify-start px-4 overflow-y-auto no-scrollbar">
         {/* Shelf Row 1 */}
-        <div className="relative mb-20 group">
-          {/* Plank Body */}
-          <div className="absolute -bottom-4 left-0 w-full h-8 bg-gradient-to-b from-[#3d2b1f] to-[#2a1d15] rounded-lg shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-t border-[#4d3b2f] z-10"></div>
+        <div className="relative mb-24 group pt-4">
+          {/* Plank Body - Adjusted position to not obscure prices */}
+          <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-b from-[#3d2b1f] to-[#2a1d15] rounded-lg shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-t border-[#4d3b2f] z-10"></div>
           {/* Plank Side detail */}
-          <div className="absolute -bottom-4 left-0 w-full h-1 bg-[#5d4b3f] z-20 opacity-30"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-[#5d4b3f] z-20 opacity-30"></div>
           
-          <div className="grid grid-cols-3 gap-12 relative z-0">
+          <div className="grid grid-cols-3 gap-12 relative z-0 pb-10">
             {MOCK_PRODUCTS.map((product) => (
               <div 
                 key={product.id} 
@@ -80,24 +79,24 @@ const OfflineStoreView: React.FC = () => {
                 className="relative group/item cursor-pointer flex flex-col items-center"
               >
                 {/* Item display */}
-                <div className="relative w-full aspect-square flex items-center justify-center p-8 transition-transform duration-500 hover:-translate-y-8 hover:scale-105">
+                <div className="relative w-full aspect-square flex items-center justify-center p-6 transition-transform duration-500 hover:-translate-y-8 hover:scale-105">
                    {/* Reflection/Shadow under item */}
                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-black/60 blur-xl rounded-full opacity-0 group-hover/item:opacity-100 transition-opacity"></div>
                    
                    <img 
                      src={product.image} 
                      alt={product.name} 
-                     className="max-w-full max-h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.8)]"
+                     className="max-w-full max-h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.8)] rounded-xl"
                    />
                    
-                   {/* Floating Price Tag */}
-                   <div className="absolute top-2 right-2 bg-[#d4af37] text-black font-black text-lg px-4 py-1.5 rounded-br-2xl shadow-xl border-l-2 border-b-2 border-white/40">
+                   {/* Floating Price Tag - Moved slightly up to avoid shelf */}
+                   <div className="absolute -top-4 right-0 bg-[#d4af37] text-black font-black text-xl px-5 py-2 rounded-br-2xl shadow-xl border-l-2 border-b-2 border-white/40">
                      ¥{product.price}
                    </div>
                 </div>
                 
-                {/* Physical Tag UI */}
-                <div className="mt-2 bg-[#f4f1ea] px-4 py-2 rounded shadow-md border-t-2 border-white flex flex-col items-center min-w-[120px] transform -rotate-1">
+                {/* Physical Tag UI - Label below the product */}
+                <div className="mt-2 bg-[#f4f1ea] px-4 py-2 rounded shadow-md border-t-2 border-white flex flex-col items-center min-w-[120px] transform -rotate-1 translate-y-2">
                    <div className="text-[10px] font-black text-stone-800 uppercase text-center truncate w-full">{product.name}</div>
                    <div className="h-[1px] w-full bg-stone-300 my-1"></div>
                    <div className="text-[8px] font-mono text-stone-400">#ACD-MAG-{product.id.slice(1)}</div>
@@ -108,11 +107,11 @@ const OfflineStoreView: React.FC = () => {
         </div>
 
         {/* Shelf Row 2 (Empty slots for realism) */}
-        <div className="relative opacity-50">
-          <div className="absolute -bottom-4 left-0 w-full h-8 bg-gradient-to-b from-[#3d2b1f] to-[#2a1d15] rounded-lg shadow-[0_15px_30px_rgba(0,0,0,0.4)] border-t border-[#4d3b2f] z-10"></div>
+        <div className="relative opacity-30 mt-12 pb-12">
+          <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-b from-[#3d2b1f] to-[#2a1d15] rounded-lg shadow-[0_15px_30px_rgba(0,0,0,0.4)] border-t border-[#4d3b2f] z-10"></div>
           <div className="grid grid-cols-3 gap-12">
             {[1,2,3].map(i => (
-              <div key={i} className="aspect-square flex flex-col items-center justify-center opacity-20 group">
+              <div key={i} className="aspect-square flex flex-col items-center justify-center group">
                 <div className="w-1/2 h-40 bg-white/5 rounded-3xl border-2 border-dashed border-white/10 flex items-center justify-center">
                   <ShoppingCart size={32} className="text-white/20 group-hover:scale-110 transition-transform" />
                 </div>
@@ -122,7 +121,7 @@ const OfflineStoreView: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-8 bg-amber-900/10 border border-amber-900/30 p-4 rounded-2xl flex items-center justify-center gap-3">
+      <div className="mt-8 bg-amber-900/10 border border-amber-900/30 p-4 rounded-2xl flex items-center justify-center gap-3 shrink-0">
         <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping"></div>
         <p className="text-amber-500/60 text-xs font-bold uppercase tracking-widest italic">互动提示：点击货架层板上的实物展示，触发线下订单同步流程</p>
       </div>
