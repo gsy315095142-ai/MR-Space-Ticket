@@ -27,6 +27,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [ticketSubTab, setTicketSubTab] = useState<'GENERATE' | 'LIST'>('GENERATE');
   const [merchAdminSubTab, setMerchAdminSubTab] = useState<'MANAGE' | 'SALES' | 'STATS'>('SALES');
   const [editingProduct, setEditingProduct] = useState<MerchItem | null>(null);
+  const [adminSessions, setAdminSessions] = useState([
+    { id: 1, time: '14:00 - 14:30', count: 2, status: 'WAITING' },
+    { id: 2, time: '14:30 - 15:00', count: 4, status: 'WAITING' },
+  ]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- 3. GUEST STATE ---
@@ -110,6 +114,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     };
 
     localStorage.setItem('vr_backstage_data', JSON.stringify([newSession, ...backstageData]));
+    
+    // Update local admin sessions state to show "Transferred"
+    setAdminSessions(prev => prev.map(s => s.id === sessionData.id ? { ...s, status: 'TRANSFERRED' } : s));
+    
     window.dispatchEvent(new Event('storage_update'));
     window.dispatchEvent(new Event('session_transferred_to_backstage'));
     alert('场次已转入后厅监控');
@@ -167,21 +175,24 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         <Activity size={24} className="animate-pulse" />
       </div>
       <div className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">待转场场次</div>
-      {[
-        { id: 1, time: '14:00 - 14:30', count: 2 },
-        { id: 2, time: '14:30 - 15:00', count: 4 },
-      ].map(session => (
+      {adminSessions.map(session => (
         <div key={session.id} className="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-400">{session.id}</div>
             <div><div className="text-xs font-bold text-gray-700">{session.time} 场</div><div className="text-[10px] text-gray-400">{session.count}人已签到</div></div>
           </div>
-          <button 
-            onClick={() => handleTransferToBackstage(session)}
-            className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all"
-          >
-            <ArrowRightLeft size={12}/> 转入后厅
-          </button>
+          {session.status === 'TRANSFERRED' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold border border-green-100">
+              <CheckCircle size={12}/> 已转入
+            </div>
+          ) : (
+            <button 
+              onClick={() => handleTransferToBackstage(session)}
+              className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all"
+            >
+              <ArrowRightLeft size={12}/> 转入后厅
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -313,16 +324,16 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         <button className="bg-white rounded-2xl p-4 text-gray-800 shadow-lg border h-28 flex flex-col justify-center"><Gift size={24} className="mb-2 text-purple-500" /><div className="font-bold text-lg">兑换体验券</div></button>
       </div>
       <div className="px-4 space-y-6 mb-10">
-        {/* Project Intro Module */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between px-1"><h3 className="font-bold text-gray-800 flex items-center gap-1.5"><Sparkles size={16} className="text-blue-500" /> 项目介绍</h3><button onClick={() => setShowIntro(true)} className="text-[10px] font-bold text-blue-500">查看详情</button></div>
-          <button onClick={() => setShowIntro(true)} className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md group active:scale-[0.98] transition-all border border-blue-50"><img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent"></div><div className="absolute inset-0 p-4 flex flex-col justify-center text-left"><div className="text-xs text-blue-200 font-bold mb-1 flex items-center gap-1"><BookOpen size={12}/> 魔法史诗</div><div className="text-lg font-bold text-white mb-1">探索魔法学院奥秘</div><div className="text-[10px] text-white/70 line-clamp-2 max-w-[180px]">在300平米物理空间内，开启属于你的魔法传奇...</div></div></button>
-        </div>
-        
-        {/* Merch Store Module */}
+        {/* Merch Store Module (NOW ABOVE PROJECT INTRO) */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1"><h3 className="font-bold text-gray-800 flex items-center gap-1.5"><ShoppingCart size={16} className="text-purple-500" /> 周边商城</h3><button onClick={() => setShowStore(true)} className="text-[10px] font-bold text-purple-500">更多好物</button></div>
           <button onClick={() => setShowStore(true)} className="relative w-full h-36 rounded-2xl overflow-hidden shadow-md active:scale-[0.98] transition-all"><img src="https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=800&fit=crop" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 to-transparent"></div><div className="absolute inset-0 p-5 flex flex-col justify-center text-white"><div className="text-xs text-indigo-200 font-bold mb-1 flex items-center gap-1"><Sparkles size={12}/> 魔法匠心</div><div className="text-xl font-bold mb-1">魔法学院周边上新</div></div></button>
+        </div>
+
+        {/* Project Intro Module (NOW BELOW MERCH STORE) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1"><h3 className="font-bold text-gray-800 flex items-center gap-1.5"><Sparkles size={16} className="text-blue-500" /> 项目介绍</h3><button onClick={() => setShowIntro(true)} className="text-[10px] font-bold text-blue-500">查看详情</button></div>
+          <button onClick={() => setShowIntro(true)} className="relative w-full h-32 rounded-2xl overflow-hidden shadow-md group active:scale-[0.98] transition-all border border-blue-50"><img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent"></div><div className="absolute inset-0 p-4 flex flex-col justify-center text-left"><div className="text-xs text-blue-200 font-bold mb-1 flex items-center gap-1"><BookOpen size={12}/> 魔法史诗</div><div className="text-lg font-bold text-white mb-1">探索魔法学院奥秘</div><div className="text-[10px] text-white/70 line-clamp-2 max-w-[180px]">在300平米物理空间内，开启属于你的魔法传奇...</div></div></button>
         </div>
       </div>
     </div>
