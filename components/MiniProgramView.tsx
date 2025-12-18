@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// Added Activity to the imports
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface MiniProgramViewProps {
@@ -27,12 +26,19 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [showIntro, setShowIntro] = useState(false);
   const [showStore, setShowStore] = useState(false);
   
+  // Confirmation Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMethod, setConfirmMethod] = useState<'PURCHASE' | 'POINTS'>('PURCHASE');
+  const [selectedProduct, setSelectedProduct] = useState<MerchItem | null>(null);
+  const [confirmQuantity, setConfirmQuantity] = useState(1);
+  
   // User Data State
   const [userPoints, setUserPoints] = useState(1200);
   const [userMerchTickets, setUserMerchTickets] = useState<UserMerchTicket[]>([]);
   const [myTickets, setMyTickets] = useState<any[]>([]);
   const [mySessions, setMySessions] = useState<any[]>([]);
   const [generatedTickets, setGeneratedTickets] = useState<any[]>([]);
+  const [mineBadge, setMineBadge] = useState(false);
 
   // View States
   const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH'>('MENU');
@@ -63,22 +69,40 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     window.dispatchEvent(new Event('storage_update'));
   };
 
-  const handleBuyOrRedeem = (item: MerchItem, method: 'PURCHASE' | 'POINTS') => {
-    if (method === 'POINTS' && userPoints < item.points) {
+  const openConfirmModal = (item: MerchItem, method: 'PURCHASE' | 'POINTS') => {
+    setSelectedProduct(item);
+    setConfirmMethod(method);
+    setConfirmQuantity(1);
+    setShowConfirmModal(true);
+  };
+
+  const executeTransaction = () => {
+    if (!selectedProduct) return;
+    
+    const method = confirmMethod;
+    const qty = confirmQuantity;
+    const totalPoints = selectedProduct.points * qty;
+
+    if (method === 'POINTS' && userPoints < totalPoints) {
       alert('积分不足');
       return;
     }
-    const newTicket: UserMerchTicket = {
+
+    const newTickets: UserMerchTicket[] = Array.from({ length: qty }).map(() => ({
       id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-      productId: item.id,
-      productName: item.name,
+      productId: selectedProduct.id,
+      productName: selectedProduct.name,
       status: 'PENDING',
       redeemMethod: method,
       timestamp: new Date().toLocaleString()
-    };
-    if (method === 'POINTS') setUserPoints(prev => prev - item.points);
-    saveMerchTickets([newTicket, ...userMerchTickets]);
-    alert(method === 'POINTS' ? '兑换成功！' : '购买成功！已为您生成商品券。');
+    }));
+
+    if (method === 'POINTS') setUserPoints(prev => prev - totalPoints);
+    
+    saveMerchTickets([...newTickets, ...userMerchTickets]);
+    setMineBadge(true); // Show red dot on 'Mine' tab
+    setShowConfirmModal(false);
+    alert(method === 'POINTS' ? `成功兑换 ${qty} 件商品！` : `成功购买 ${qty} 件商品！已为您生成商品券。`);
   };
 
   const handleRedeemMerch = (ticket: UserMerchTicket) => {
@@ -257,40 +281,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     </div>
   );
 
-  // --- Main View Logic ---
-
-  if (isAdminView) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50">
-        <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-10 shrink-0">
-          <div className="font-bold text-lg text-gray-800">前店管理台</div>
-          <div className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded border border-purple-200 font-bold">STAFF MODE</div>
-        </div>
-        <div className="flex-1 overflow-hidden relative">
-          {adminTab === 'TICKETS' && renderAdminTickets()}
-          {adminTab === 'DATA' && renderAdminData()}
-          {adminTab === 'IDENTITY' && renderAdminIdentity()}
-          {adminTab === 'CONTROL' && renderAdminControl()}
-          {adminTab === 'MERCH' && <StaffMerchBackend />}
-        </div>
-        <div className="bg-white border-t border-gray-200 flex justify-around items-center h-20 shrink-0 pb-4">
-          {[
-            { id: 'TICKETS', label: '票务', icon: Ticket },
-            { id: 'DATA', label: '数据', icon: BarChart },
-            { id: 'IDENTITY', label: '身份', icon: User },
-            { id: 'CONTROL', label: '中控', icon: Settings },
-            { id: 'MERCH', label: '商品', icon: ShoppingBag },
-          ].map((tab) => (
-            <button key={tab.id} onClick={() => setAdminTab(tab.id as any)} className={`flex flex-col items-center gap-1 w-full transition-all ${adminTab === tab.id ? 'text-purple-600 scale-110' : 'text-gray-400'}`}>
-              <tab.icon size={22} strokeWidth={adminTab === tab.id ? 2.5 : 2} />
-              <span className="text-[10px] font-bold">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   // --- Guest Views (Modals) ---
 
   const IntroModal = () => (
@@ -349,14 +339,69 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => handleBuyOrRedeem(product, 'POINTS')} className="flex-1 bg-white text-purple-600 text-[10px] font-bold py-2 rounded-lg border border-purple-200 hover:bg-purple-50">积分兑换</button>
-                  <button onClick={() => handleBuyOrRedeem(product, 'PURCHASE')} className="flex-1 bg-purple-600 text-white text-[10px] font-bold py-2 rounded-lg shadow-sm shadow-purple-100">付费购买</button>
+                  <button onClick={() => openConfirmModal(product, 'POINTS')} className="flex-1 bg-white text-purple-600 text-[10px] font-bold py-2 rounded-lg border border-purple-200 hover:bg-purple-50">积分兑换</button>
+                  <button onClick={() => openConfirmModal(product, 'PURCHASE')} className="flex-1 bg-purple-600 text-white text-[10px] font-bold py-2 rounded-lg shadow-sm shadow-purple-100">付费购买</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && selectedProduct && (
+        <div className="absolute inset-0 z-[70] flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
+          <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="font-bold text-lg mb-4 text-center">
+              {confirmMethod === 'PURCHASE' ? '购买商品' : '兑换商品'}
+            </h3>
+            
+            <div className="flex gap-4 mb-6">
+               <img src={selectedProduct.image} className="w-20 h-20 rounded-lg object-cover border" alt="" />
+               <div className="flex-1">
+                 <div className="font-bold text-sm mb-1">{selectedProduct.name}</div>
+                 <div className="text-xs text-gray-500">
+                   单价: {confirmMethod === 'PURCHASE' ? `¥${selectedProduct.price}` : `${selectedProduct.points} 积分`}
+                 </div>
+               </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-8 bg-gray-50 p-3 rounded-xl">
+              <span className="text-sm font-bold text-gray-600">购买数量</span>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))}
+                  className="w-8 h-8 rounded-full bg-white border flex items-center justify-center text-gray-400 active:bg-gray-100"
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="font-mono font-bold text-lg w-6 text-center">{confirmQuantity}</span>
+                <button 
+                  onClick={() => setConfirmQuantity(Math.min(9, confirmQuantity + 1))}
+                  className="w-8 h-8 rounded-full bg-white border flex items-center justify-center text-gray-400 active:bg-gray-100"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-6 flex justify-between items-baseline">
+              <span className="text-xs text-gray-400">预计合计</span>
+              <div className="text-xl font-bold text-purple-600">
+                {confirmMethod === 'PURCHASE' 
+                  ? `¥${selectedProduct.price * confirmQuantity}` 
+                  : `${selectedProduct.points * confirmQuantity} 积分`}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl">取消</button>
+              <button onClick={executeTransaction} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">确认{confirmMethod === 'PURCHASE' ? '购买' : '兑换'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -500,15 +545,33 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         )}
       </div>
 
-      {/* Guest Navbar */}
-      <div className="absolute bottom-0 w-full h-18 bg-white border-t flex justify-around items-center px-6 pb-2 shrink-0">
-        <button onClick={() => {setActiveTab('HOME'); setMineView('MENU');}} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'HOME' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} />
+      {/* Guest Navbar - FIXED with Scan/Check-in Button */}
+      <div className="absolute bottom-0 w-full h-18 bg-white border-t flex justify-around items-center px-6 pb-2 shrink-0 z-40">
+        <button 
+          onClick={() => {setActiveTab('HOME'); setMineView('MENU'); setMineBadge(false);}} 
+          className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'HOME' ? 'text-blue-600' : 'text-gray-400'}`}
+        >
+          <Home size={22} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} />
           <span className="text-[10px] font-bold">首页</span>
         </button>
-        <button onClick={() => setActiveTab('MINE')} className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'MINE' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <User size={24} strokeWidth={activeTab === 'MINE' ? 2.5 : 2} />
+
+        {/* Floating Scan Button */}
+        <div className="relative -top-5">
+            <button className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white active:scale-90 transition-transform">
+                <ScanLine size={24} />
+            </button>
+            <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-blue-500 w-full text-center">签到</span>
+        </div>
+
+        <button 
+          onClick={() => {setActiveTab('MINE'); setMineBadge(false);}} 
+          className={`flex flex-col items-center gap-1.5 transition-all relative ${activeTab === 'MINE' ? 'text-blue-600' : 'text-gray-400'}`}
+        >
+          <User size={22} strokeWidth={activeTab === 'MINE' ? 2.5 : 2} />
           <span className="text-[10px] font-bold">我的</span>
+          {mineBadge && (
+            <span className="absolute top-0 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+          )}
         </button>
       </div>
 
