@@ -19,13 +19,14 @@ export interface MerchItem {
   image: string;
   points: number;
   price: number;
+  stock?: number; // Added stock property
 }
 
 export interface UserMerchTicket {
   id: string;
   productId: string;
   productName: string;
-  status: 'PENDING' | 'REDEEMED' | 'SOLD_OFFLINE'; // Added SOLD_OFFLINE for consistency
-  redeemMethod: 'PURCHASE' | 'POINTS' | 'OFFLINE'; // Added OFFLINE method
+  status: 'PENDING' | 'REDEEMED' | 'SOLD_OFFLINE';
+  redeemMethod: 'PURCHASE' | 'POINTS' | 'OFFLINE';
   timestamp: string;
 }

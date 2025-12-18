@@ -1,21 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Added ShoppingCart to the import list from lucide-react
 import { ShoppingBag, Tag, CheckCircle2, X, Barcode, Boxes, ShoppingCart } from 'lucide-react';
 import { MerchItem } from '../types';
 
-const MOCK_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?w=600&h=800&fit=crop', points: 500, price: 128 }, // Updated Wand Image
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=600&h=800&fit=crop', points: 800, price: 299 }, // Updated Cloak Image
+const DEFAULT_PRODUCTS: MerchItem[] = [
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1519074063912-cd2d042788f6?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
 ];
 
 const OfflineStoreView: React.FC = () => {
+  const [products, setProducts] = useState<MerchItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<MerchItem | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const loadProducts = () => {
+    const storedProducts = localStorage.getItem('vr_global_products');
+    if (storedProducts) {
+      setProducts(JSON.parse(storedProducts));
+    } else {
+      setProducts(DEFAULT_PRODUCTS);
+      localStorage.setItem('vr_global_products', JSON.stringify(DEFAULT_PRODUCTS));
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    window.addEventListener('storage_update', loadProducts);
+    return () => window.removeEventListener('storage_update', loadProducts);
+  }, []);
 
   const handlePurchase = () => {
     if (!selectedProduct) return;
 
+    // Update sales record
     const storedSales = localStorage.getItem('vr_offline_sales');
     const sales = storedSales ? JSON.parse(storedSales) : [];
     
@@ -29,6 +47,15 @@ const OfflineStoreView: React.FC = () => {
     };
 
     localStorage.setItem('vr_offline_sales', JSON.stringify([newSale, ...sales]));
+    
+    // Update global stock
+    const updatedProducts = products.map(p => {
+        if (p.id === selectedProduct.id) {
+            return { ...p, stock: Math.max(0, (p.stock || 0) - 1) };
+        }
+        return p;
+    });
+    localStorage.setItem('vr_global_products', JSON.stringify(updatedProducts));
     
     window.dispatchEvent(new Event('storage_update'));
     window.dispatchEvent(new Event('offline_sale_created'));
@@ -72,7 +99,7 @@ const OfflineStoreView: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-full h-1 bg-[#5d4b3f] z-20 opacity-30"></div>
           
           <div className="grid grid-cols-3 gap-12 relative z-0 pb-12">
-            {MOCK_PRODUCTS.map((product) => (
+            {products.map((product) => (
               <div 
                 key={product.id} 
                 onClick={() => setSelectedProduct(product)}
@@ -89,13 +116,18 @@ const OfflineStoreView: React.FC = () => {
                      className="w-full h-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.9)] z-10 transition-transform duration-700 group-hover/item:scale-110"
                    />
                    
-                   {/* Floating Price Tag - Positioned high above the shelf */}
+                   {/* Floating Price Tag */}
                    <div className="absolute top-2 right-2 bg-gradient-to-br from-[#d4af37] to-[#b8860b] text-black font-black text-lg px-4 py-1.5 rounded-lg shadow-xl border-l border-b border-white/20 z-20">
                      ¥{product.price}
                    </div>
+
+                   {/* Stock Badge */}
+                   <div className={`absolute bottom-2 right-2 px-2 py-0.5 rounded text-[8px] font-bold ${product.stock && product.stock > 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {product.stock && product.stock > 0 ? `仅剩 ${product.stock} 件` : '已售罄'}
+                   </div>
                 </div>
                 
-                {/* Label Tag - Placed on the shelf face or just below */}
+                {/* Label Tag */}
                 <div className="mt-4 bg-[#f4f1ea] px-4 py-1.5 rounded-sm shadow-md border-t-2 border-white flex flex-col items-center min-w-[110px] transform -rotate-1 relative z-20">
                    <div className="text-[9px] font-black text-stone-800 uppercase text-center truncate w-full">{product.name}</div>
                    <div className="h-[1px] w-full bg-stone-300 my-1"></div>
@@ -159,14 +191,15 @@ const OfflineStoreView: React.FC = () => {
                   </div>
 
                   <p className="text-stone-500 text-center text-sm font-medium leading-relaxed px-6">
-                    正在核实线下库存... 确认成交后将自动扣减全平台配额并同步至工作人员【商品】仪表盘。
+                    正在核实线下库存... (当前:{selectedProduct.stock || 0}) 确认成交后将自动扣减全平台配额。
                   </p>
 
                   <button 
                     onClick={handlePurchase}
-                    className="w-full bg-stone-900 text-white font-black py-6 rounded-[2rem] text-xl shadow-2xl shadow-stone-400/50 hover:bg-stone-800 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                    disabled={!selectedProduct.stock || selectedProduct.stock <= 0}
+                    className={`w-full text-white font-black py-6 rounded-[2rem] text-xl shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 ${!selectedProduct.stock || selectedProduct.stock <= 0 ? 'bg-gray-400' : 'bg-stone-900 shadow-stone-400/50 hover:bg-stone-800'}`}
                   >
-                    确认成交并同步
+                    {!selectedProduct.stock || selectedProduct.stock <= 0 ? '库存不足' : '确认成交并同步'}
                     <CheckCircle2 size={24} className="text-amber-500" />
                   </button>
                </div>
