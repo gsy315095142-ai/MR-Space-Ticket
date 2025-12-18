@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface MiniProgramViewProps {
@@ -163,7 +163,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
            <div className="space-y-3">
               {products.map(p => (
                 <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 shadow-sm">
-                   <img src={p.image} className="w-12 h-12 rounded object-cover shadow-sm" />
+                   <img src={p.image} className="w-12 h-12 rounded object-cover shadow-sm bg-gray-50" />
                    <div className="flex-1">
                      <div className="text-sm font-bold">{p.name}</div>
                      <div className="text-[10px] text-gray-400">¥{p.price} / {p.points}pts / 库存:{p.stock || 0}</div>
@@ -173,7 +173,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                    </button>
                 </div>
               ))}
-              <button className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold">+ 上架新商品</button>
+              <button 
+                onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0 })}
+                className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"
+              >
+                <PlusCircle size={16} /> 上架新商品
+              </button>
            </div>
         )}
         {merchAdminSubTab === 'SALES' && (
@@ -212,19 +217,98 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       {editingProduct && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)}></div>
-          <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95">
-             <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">编辑商品信息</h3><X size={20} className="text-gray-400 cursor-pointer" onClick={() => setEditingProduct(null)}/></div>
+          <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 max-h-[90%] overflow-y-auto no-scrollbar">
+             <div className="flex justify-between items-center mb-4">
+               <h3 className="font-bold text-lg">{products.find(p => p.id === editingProduct.id) ? '编辑商品信息' : '上架新商品'}</h3>
+               <X size={20} className="text-gray-400 cursor-pointer" onClick={() => setEditingProduct(null)}/>
+             </div>
+             
              <div className="space-y-4">
-               <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400">商品名称</label><input type="text" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
-               <div className="grid grid-cols-2 gap-3">
-                 <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400">价格 (¥)</label><input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
-                 <div className="space-y-1"><label className="text-[10px] font-bold text-gray-400">库存</label><input type="number" value={editingProduct.stock || 0} onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="w-full border rounded-lg px-3 py-2 text-sm" /></div>
+               {/* Image Upload/Link Section */}
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-gray-400 uppercase">商品图片 (URL/上传)</label>
+                 <div className="flex gap-3">
+                   <div className="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                     {editingProduct.image ? (
+                       <img src={editingProduct.image} className="w-full h-full object-cover" />
+                     ) : (
+                       <ImageIcon size={24} className="text-gray-300" />
+                     )}
+                   </div>
+                   <div className="flex-1 space-y-2">
+                     <input 
+                       type="text" 
+                       placeholder="输入图片URL" 
+                       value={editingProduct.image} 
+                       onChange={e => setEditingProduct({...editingProduct, image: e.target.value})} 
+                       className="w-full border rounded-lg px-3 py-2 text-xs" 
+                     />
+                     <button type="button" className="w-full py-1.5 border border-purple-200 text-purple-600 rounded-lg text-[10px] font-bold bg-purple-50">本地上传 (模拟)</button>
+                   </div>
+                 </div>
                </div>
-               <button onClick={() => {
-                 const updated = products.map(p => p.id === editingProduct.id ? editingProduct : p);
-                 saveProducts(updated);
-                 setEditingProduct(null);
-               }} className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl mt-4 flex items-center justify-center gap-2"><Save size={18}/> 保存同步</button>
+
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">商品名称</label>
+                 <input 
+                   type="text" 
+                   value={editingProduct.name} 
+                   onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} 
+                   className="w-full border rounded-lg px-3 py-2 text-sm font-bold" 
+                   placeholder="输入商品名称"
+                 />
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">售价 (¥)</label>
+                   <input 
+                     type="number" 
+                     value={editingProduct.price} 
+                     onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} 
+                     className="w-full border rounded-lg px-3 py-2 text-sm font-mono" 
+                   />
+                 </div>
+                 <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">积分点数 (pts)</label>
+                   <input 
+                     type="number" 
+                     value={editingProduct.points} 
+                     onChange={e => setEditingProduct({...editingProduct, points: Number(e.target.value)})} 
+                     className="w-full border rounded-lg px-3 py-2 text-sm font-mono" 
+                   />
+                 </div>
+               </div>
+
+               <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">库存数量</label>
+                 <input 
+                   type="number" 
+                   value={editingProduct.stock || 0} 
+                   onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} 
+                   className="w-full border rounded-lg px-3 py-2 text-sm font-mono" 
+                 />
+               </div>
+
+               <button 
+                 onClick={() => {
+                   if (!editingProduct.name || !editingProduct.image) {
+                     alert("请完整填写商品名称和图片");
+                     return;
+                   }
+                   let updatedProducts;
+                   if (products.find(p => p.id === editingProduct.id)) {
+                     updatedProducts = products.map(p => p.id === editingProduct.id ? editingProduct : p);
+                   } else {
+                     updatedProducts = [...products, editingProduct];
+                   }
+                   saveProducts(updatedProducts);
+                   setEditingProduct(null);
+                 }} 
+                 className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl mt-4 flex items-center justify-center gap-2 shadow-lg shadow-purple-200 active:scale-[0.98] transition-all"
+               >
+                 <Save size={18}/> 保存并同步至门店
+               </button>
              </div>
           </div>
         </div>
@@ -270,7 +354,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     );
   }
 
-  // --- 7. GUEST VIEW LOGIC (UNTOUCHED BUT SEPARATED) ---
+  // --- 7. GUEST VIEW LOGIC ---
   const GuestHome = () => (
     <div className="flex flex-col h-full">
       <div className="relative h-64 w-full">
