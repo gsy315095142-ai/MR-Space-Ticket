@@ -122,9 +122,9 @@ const App: React.FC = () => {
       <div className="w-64 md:w-72 bg-slate-800 border-r border-slate-700 flex flex-col shadow-xl z-20">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-white text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            LUMI魔法学院XR
+            LUMI魔法学院
           </h1>
-          <p className="text-slate-400 text-xs mt-1">售票体验VR大空间平台</p>
+          <p className="text-slate-400 text-xs mt-1">MR大空间平台</p>
         </div>
         
         <div className="flex-1 p-4 space-y-6 overflow-y-auto no-scrollbar">
