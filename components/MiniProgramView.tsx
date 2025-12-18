@@ -102,7 +102,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     saveMerchTickets([...newTickets, ...userMerchTickets]);
     setMineBadge(true); // Show red dot on 'Mine' tab
     setShowConfirmModal(false);
-    alert(method === 'POINTS' ? `成功兑换 ${qty} 件商品！` : `成功购买 ${qty} 件商品！已为您生成商品券。`);
+    
+    // Universal success alert
+    alert("获得商品核销券，请在我的页面进行查看");
   };
 
   const handleRedeemMerch = (ticket: UserMerchTicket) => {
@@ -203,7 +205,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
             <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-400">{n}</div>
             <div><div className="text-xs font-bold text-gray-700">14:00 - 14:30 场</div><div className="text-[10px] text-gray-400">2/4人已签到</div></div>
           </div>
-          <button className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold">中控操作</button>
+          <button className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold">后台操作</button>
         </div>
       ))}
     </div>
@@ -354,7 +356,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
           <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="font-bold text-lg mb-4 text-center">
-              {confirmMethod === 'PURCHASE' ? '购买商品' : '兑换商品'}
+              {confirmMethod === 'PURCHASE' ? '购买确认' : '兑换确认'}
             </h3>
             
             <div className="flex gap-4 mb-6">
@@ -368,7 +370,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
             </div>
 
             <div className="flex items-center justify-between mb-8 bg-gray-50 p-3 rounded-xl">
-              <span className="text-sm font-bold text-gray-600">购买数量</span>
+              <span className="text-sm font-bold text-gray-600">选择数量</span>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))}
@@ -387,7 +389,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
             </div>
 
             <div className="mb-6 flex justify-between items-baseline">
-              <span className="text-xs text-gray-400">预计合计</span>
+              <span className="text-xs text-gray-400">总额合计</span>
               <div className="text-xl font-bold text-purple-600">
                 {confirmMethod === 'PURCHASE' 
                   ? `¥${selectedProduct.price * confirmQuantity}` 
@@ -447,6 +449,38 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     </div>
   );
 
+  if (isAdminView) {
+    return (
+      <div className="flex flex-col h-full bg-slate-50">
+        <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-10 shrink-0">
+          <div className="font-bold text-lg text-gray-800">前店工作台</div>
+          <div className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded border border-purple-200 font-bold">STAFF MODE</div>
+        </div>
+        <div className="flex-1 overflow-hidden relative">
+          {adminTab === 'TICKETS' && renderAdminTickets()}
+          {adminTab === 'DATA' && renderAdminData()}
+          {adminTab === 'IDENTITY' && renderAdminIdentity()}
+          {adminTab === 'CONTROL' && renderAdminControl()}
+          {adminTab === 'MERCH' && <StaffMerchBackend />}
+        </div>
+        <div className="bg-white border-t border-gray-200 flex justify-around items-center h-20 shrink-0 pb-4">
+          {[
+            { id: 'TICKETS', label: '票务', icon: Ticket },
+            { id: 'DATA', label: '数据', icon: BarChart },
+            { id: 'IDENTITY', label: '身份', icon: User },
+            { id: 'CONTROL', label: '中控', icon: Settings }, // Re-labeled as '中控' (Control)
+            { id: 'MERCH', label: '商品', icon: ShoppingBag },
+          ].map((tab) => (
+            <button key={tab.id} onClick={() => setAdminTab(tab.id as any)} className={`flex flex-col items-center gap-1 w-full transition-all ${adminTab === tab.id ? 'text-purple-600 scale-110' : 'text-gray-400'}`}>
+              <tab.icon size={22} strokeWidth={adminTab === tab.id ? 2.5 : 2} />
+              <span className="text-[10px] font-bold">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-white relative overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
@@ -466,7 +500,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
               </div>
             </div>
 
-            <div className="px-4 -mt-8 relative z-10 grid grid-cols-2 gap-3 mb-6">
+            {/* Changed -mt-8 to mt-4 to prevent obscuring banner text */}
+            <div className="px-4 mt-4 relative z-10 grid grid-cols-2 gap-3 mb-6">
               <button onClick={() => setBookingStep('BASIC' as any)} className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-xl h-28 flex flex-col justify-center relative overflow-hidden">
                 <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full"></div>
                 <CalendarDays size={24} className="mb-2" />
@@ -545,7 +580,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         )}
       </div>
 
-      {/* Guest Navbar - FIXED with Scan/Check-in Button */}
+      {/* Guest Navbar */}
       <div className="absolute bottom-0 w-full h-18 bg-white border-t flex justify-around items-center px-6 pb-2 shrink-0 z-40">
         <button 
           onClick={() => {setActiveTab('HOME'); setMineView('MENU'); setMineBadge(false);}} 
@@ -555,7 +590,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           <span className="text-[10px] font-bold">首页</span>
         </button>
 
-        {/* Floating Scan Button */}
         <div className="relative -top-5">
             <button className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white active:scale-90 transition-transform">
                 <ScanLine size={24} />
