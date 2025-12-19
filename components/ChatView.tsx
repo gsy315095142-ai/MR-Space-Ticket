@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, Send, Ticket, CheckCircle, ShoppingBag, Package } from 'lucide-react';
 
@@ -10,6 +9,7 @@ const contacts = [
 const ChatView: React.FC = () => {
   const [selectedContactId, setSelectedContactId] = useState<number>(1);
   const [messages, setMessages] = useState<any[]>([]);
+  const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
 
   const loadMessages = () => {
       const stored = localStorage.getItem('vr_chat_messages');
@@ -26,8 +26,35 @@ const ChatView: React.FC = () => {
       return () => window.removeEventListener('storage_update', loadMessages);
   }, []);
 
+  const showToast = (message: string) => {
+      setToast({ show: true, message });
+      setTimeout(() => setToast({ show: false, message: '' }), 3000);
+  };
+
+  const handleClaimTicket = (msg: any) => {
+      const stored = localStorage.getItem('vr_guest_tickets');
+      const tickets = stored ? JSON.parse(stored) : [];
+      
+      const newTicket = {
+          id: `T_CHAT_${Date.now()}`,
+          code: Math.random().toString(36).substring(2, 9).toUpperCase(),
+          name: msg.ticketData?.name || '客服赠票',
+          date: new Date().toLocaleDateString(),
+          store: 'LUMI魔法学院', // Default store
+          status: 'PENDING',
+          expiryText: '有效期30天',
+          tags: ['客服赠送']
+      };
+      
+      localStorage.setItem('vr_guest_tickets', JSON.stringify([newTicket, ...tickets]));
+      window.dispatchEvent(new Event('storage_update'));
+      window.dispatchEvent(new Event('new_user_ticket'));
+      
+      showToast('领取成功！已存入【我的票券】');
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white relative">
       <div className="h-12 border-b flex items-center justify-center font-bold text-gray-800 shrink-0">消息中心</div>
       <div className="flex flex-1 overflow-hidden">
         <div className="w-[80px] border-r bg-gray-50 overflow-y-auto flex flex-col no-scrollbar">
@@ -54,9 +81,15 @@ const ChatView: React.FC = () => {
                       </div>
                     </div>
                   ) : msg.type === 'TICKET_LINK' ? (
-                    <div className="max-w-[85%] bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-                      <div className="bg-blue-600 p-3 text-white text-xs font-bold">VR体验赠票</div>
-                      <div className="p-2 text-[10px]">点击查收票券</div>
+                    <div onClick={() => handleClaimTicket(msg)} className="max-w-[85%] bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden cursor-pointer active:opacity-80 transition-opacity">
+                      <div className="bg-blue-600 p-3 text-white text-xs font-bold flex items-center gap-2">
+                          <Ticket size={16} />
+                          <span>VR体验赠票</span>
+                      </div>
+                      <div className="p-3">
+                          <div className="font-bold text-sm text-gray-800 mb-1">{msg.ticketData.name}</div>
+                          <div className="text-[10px] text-blue-500">点击领取放入卡包 ></div>
+                      </div>
                     </div>
                   ) : (
                     <div className={`max-w-[85%] rounded-lg p-2 text-xs ${msg.sender === 'ME' ? 'bg-purple-600 text-white' : 'bg-white text-gray-800'}`}>
@@ -72,6 +105,14 @@ const ChatView: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* TOAST NOTIFICATION */}
+      {toast.show && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-6 py-3 rounded-xl shadow-2xl z-[300] flex items-center gap-3 animate-in fade-in slide-in-from-top-4 backdrop-blur-md max-w-[90%]">
+              <CheckCircle size={20} className="text-green-400 shrink-0" />
+              <span className="text-xs font-bold text-center leading-relaxed">{toast.message}</span>
+          </div>
+      )}
     </div>
   );
 };

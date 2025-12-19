@@ -65,6 +65,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [ticketSubTab, setTicketSubTab] = useState<'GENERATE' | 'LIST'>('GENERATE');
   const [merchAdminSubTab, setMerchAdminSubTab] = useState<'MANAGE' | 'SALES' | 'STATS'>('SALES');
   const [editingProduct, setEditingProduct] = useState<MerchItem | null>(null);
+  const [genTicketCount, setGenTicketCount] = useState(1);
   
   const [showTransferConfirmModal, setShowTransferConfirmModal] = useState(false);
   const [sessionToTransfer, setSessionToTransfer] = useState<GlobalBooking | null>(null);
@@ -121,6 +122,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     }
     const storedSessions = localStorage.getItem('vr_user_sessions');
     if (storedSessions) setUserSessions(JSON.parse(storedSessions));
+    const storedGuestTickets = localStorage.getItem('vr_guest_tickets');
+    if (storedGuestTickets) setMyTickets(JSON.parse(storedGuestTickets));
     
     // Load Global Bookings for Staff Control
     const storedGlobal = localStorage.getItem('vr_global_bookings');
@@ -272,6 +275,43 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     }
   };
 
+  const handleGenerateAndSend = () => {
+    const storedMessages = localStorage.getItem('vr_chat_messages');
+    const messages = storedMessages ? JSON.parse(storedMessages) : [];
+    
+    // Create chat message
+    const newMessage = {
+        id: Date.now(),
+        sender: 'STAFF', // Not 'ME'
+        type: 'TICKET_LINK',
+        text: `[系统] 您收到一张${genTicketCount}人票`,
+        ticketData: {
+            count: genTicketCount,
+            name: `${genTicketCount}人VR体验票`
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    localStorage.setItem('vr_chat_messages', JSON.stringify([...messages, newMessage]));
+    
+    // Create Staff Record
+    const newGenTicket = {
+        id: 'T' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        type: `${genTicketCount}人票`,
+        code: Math.random().toString(36).substr(2, 8).toUpperCase(),
+        status: 'ACTIVE'
+    };
+    
+    const updatedGenTickets = [newGenTicket, ...generatedTickets];
+    setGeneratedTickets(updatedGenTickets);
+    localStorage.setItem('vr_generated_tickets', JSON.stringify(updatedGenTickets));
+    
+    window.dispatchEvent(new Event('storage_update'));
+    window.dispatchEvent(new Event('new_chat_message')); // To notify App.tsx to show badge on Guest Chat
+    
+    showToast('票券已发送给用户');
+  };
+
   const handleRedeemConfirm = () => {
     if (!redeemCode) return;
     
@@ -293,7 +333,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         tags: ['团购兑换']
     };
     
-    setMyTickets(prev => [newTicket, ...prev]);
+    const updatedTickets = [newTicket, ...myTickets];
+    setMyTickets(updatedTickets);
+    localStorage.setItem('vr_guest_tickets', JSON.stringify(updatedTickets));
+
     setShowRedeemFlow(false);
     setRedeemCode('');
     
@@ -304,7 +347,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const handleConfirmBooking = () => {
       // 1. Process used tickets
       if (selectedTicketIds.length > 0) {
-          setMyTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t));
+          const updatedTickets = myTickets.map(t => selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t);
+          setMyTickets(updatedTickets);
+          localStorage.setItem('vr_guest_tickets', JSON.stringify(updatedTickets));
       }
 
       // 2. Create User Session (Local)
@@ -738,9 +783,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-2">
              <h3 className="font-bold mb-4 flex items-center gap-2 text-sm text-purple-600"><Ticket size={18} /> 配置新票券</h3>
              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[1,2,3,4].map(n => <button key={n} className="border-2 border-gray-100 p-4 rounded-xl text-center hover:border-purple-500 transition-all"><Users size={20} className="mx-auto mb-1 text-gray-400" /><div className="text-xs font-bold">{n}人票</div></button>)}
+                {[1,2,3,4].map(n => (
+                    <button 
+                        key={n} 
+                        onClick={() => setGenTicketCount(n)}
+                        className={`border-2 p-4 rounded-xl text-center transition-all ${genTicketCount === n ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-gray-100 hover:border-purple-300'}`}
+                    >
+                        <Users size={20} className={`mx-auto mb-1 ${genTicketCount === n ? 'text-purple-600' : 'text-gray-400'}`} />
+                        <div className="text-xs font-bold">{n}人票</div>
+                    </button>
+                ))}
              </div>
-             <button className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg">生成并发送</button>
+             <button onClick={handleGenerateAndSend} className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all">生成并发送</button>
            </div>
          ) : (
            <div className="space-y-3">
@@ -1046,6 +1100,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                </div>
            </div>
         </div>
+      )}
+
+      {/* STAFF TOAST NOTIFICATION - Added here */}
+      {toast.show && (
+          <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white px-6 py-3 rounded-xl shadow-2xl z-[300] flex items-center gap-3 animate-in fade-in slide-in-from-top-4 backdrop-blur-md max-w-[90%]">
+              <CheckCircle size={20} className="text-green-400 shrink-0" />
+              <span className="text-xs font-bold text-center leading-relaxed">{toast.message}</span>
+          </div>
       )}
 
       </div>
