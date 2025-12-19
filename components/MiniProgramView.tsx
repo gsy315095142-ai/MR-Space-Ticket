@@ -86,6 +86,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [homeStore] = useState('北京·ClubMedJoyview延庆度假村');
   const [showMineRedDot, setShowMineRedDot] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [showTicketQRCode, setShowTicketQRCode] = useState<UserMerchTicket | null>(null);
 
   // Guest Data
   const [myTickets, setMyTickets] = useState<MyTicket[]>([]);
@@ -853,7 +854,23 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                     </div>
                 )}
                 {mineView === 'MERCH' && (
-                     userMerchTickets.map(ticket => (<div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border"><div className="flex justify-between items-start mb-2"><span className="font-bold text-gray-800 text-sm">{ticket.productName}</span><span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span></div><div className="text-[10px] text-gray-400">券码: {ticket.id}</div></div>))
+                     userMerchTickets.map(ticket => (
+                        <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="font-bold text-gray-800 text-sm">{ticket.productName}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400">券码: {ticket.id}</div>
+                            {ticket.status === 'PENDING' && (
+                                <button 
+                                    onClick={() => setShowTicketQRCode(ticket)}
+                                    className="mt-3 w-full border border-purple-200 text-purple-600 bg-purple-50 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                >
+                                    <QrCode size={14} /> 查看核销码
+                                </button>
+                            )}
+                        </div>
+                     ))
                 )}
             </div>
         </div>
@@ -1316,6 +1333,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                     const newPoints = userPoints - (selectedProduct.points * qty);
                     setUserPoints(newPoints);
                     localStorage.setItem('vr_user_points', newPoints.toString());
+                    showToast('兑换成功，请在【我的周边】查看核销码');
+                } else {
+                    alert(`成功购买 ${qty} 份商品`);
                 }
                 const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
                 saveProducts(updatedProducts);
@@ -1324,7 +1344,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                 localStorage.setItem('vr_user_merch', JSON.stringify([...newTickets, ...existing]));
                 window.dispatchEvent(new Event('storage_update'));
                 setShowConfirmModal(false);
-                alert(`成功购买/兑换 ${qty} 份商品`);
               }} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl text-sm">确定</button>
             </div>
           </div>
@@ -1626,6 +1645,25 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                        })()}
                    </div>
                )}
+            </div>
+        </div>
+      )}
+
+      {showTicketQRCode && (
+        <div className="absolute inset-0 z-[250] flex items-center justify-center p-6 animate-in fade-in bg-black/80 backdrop-blur-sm" onClick={() => setShowTicketQRCode(null)}>
+            <div className="bg-white w-full max-w-[300px] rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95 text-center" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowTicketQRCode(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                   <X size={20} />
+                </button>
+                <div className="text-sm font-bold text-gray-500 mb-1">周边核销码</div>
+                <h3 className="font-black text-lg text-slate-800 mb-6">{showTicketQRCode.productName}</h3>
+                
+                <div className="bg-slate-900 p-4 rounded-xl inline-block mb-4 shadow-lg">
+                    <QrCode size={140} className="text-white" />
+                </div>
+                
+                <div className="text-xs text-gray-400 mb-2">请出示二维码给工作人员</div>
+                <div className="text-lg font-mono font-black text-slate-800 tracking-widest bg-gray-100 py-3 rounded-xl border border-gray-200">{showTicketQRCode.id}</div>
             </div>
         </div>
       )}
