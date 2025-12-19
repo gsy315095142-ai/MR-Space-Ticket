@@ -30,3 +30,14 @@ export interface UserMerchTicket {
   redeemMethod: 'PURCHASE' | 'POINTS' | 'OFFLINE';
   timestamp: string;
 }
+
+export interface GlobalBooking {
+    id: string;
+    time: string;
+    dateStr: string;
+    guests: number;
+    checkInCount: number;
+    status: 'BOOKED' | 'CHECKED_IN' | 'TRANSFERRED';
+    store: string;
+    userName: string;
+}

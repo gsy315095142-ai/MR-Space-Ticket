@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ViewType, NavItem } from './types';
 import MobileFrame from './components/MobileFrame';
 import MiniProgramView from './components/MiniProgramView';
+import StaffFrontStoreView from './components/StaffFrontStoreView';
 import BackstageView from './components/BackstageView';
 import ChatView from './components/ChatView';
 import OfflineStoreView from './components/OfflineStoreView';
@@ -92,13 +93,13 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case ViewType.STAFF_FRONT_STORE:
-        return <MiniProgramView key="staff-front-store" userType="STAFF" initialAdminTab={staffInitialTab} />;
+        return <StaffFrontStoreView key="staff-front-store" initialAdminTab={staffInitialTab} />;
       case ViewType.STAFF_BACKSTAGE:
         return <BackstageView key="staff-backstage" />;
       case ViewType.GUEST_CHAT:
         return <ChatView key="guest-chat" />;
       case ViewType.GUEST_MINI_PROGRAM:
-        return <MiniProgramView key="guest-mini-program" userType="GUEST" resetTrigger={guestMiniProgramResetTrigger} />;
+        return <MiniProgramView key="guest-mini-program" resetTrigger={guestMiniProgramResetTrigger} />;
       case ViewType.OFFLINE_STORE:
         return <OfflineStoreView />;
       default:
