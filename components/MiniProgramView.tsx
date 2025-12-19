@@ -700,12 +700,15 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">取消</button>
-              <button onClick={() => {
-                if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
-                if (confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)) { alert("积分不足"); return; }
-                const method = confirmMethod;
-                const qty = confirmQuantity;
-                const newTickets: UserMerchTicket[] = Array.from({ length: qty }).map(() => ({
+              <button 
+                disabled={confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)}
+                onClick={() => {
+                  if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
+                  // Points check redundant due to disabled attribute but logic remains same if somehow clicked
+                  if (confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)) { return; }
+                  const method = confirmMethod;
+                  const qty = confirmQuantity;
+                  const newTickets: UserMerchTicket[] = Array.from({ length: qty }).map(() => ({
                   id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
                   productId: selectedProduct.id, productName: selectedProduct.name,
                   status: 'PENDING', redeemMethod: method, timestamp: new Date().toLocaleString()
@@ -725,7 +728,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 localStorage.setItem('vr_user_merch', JSON.stringify([...newTickets, ...existing]));
                 window.dispatchEvent(new Event('storage_update'));
                 setShowConfirmModal(false);
-              }} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl text-sm">确定</button>
+              }} className={`flex-1 font-bold py-3 rounded-xl text-sm ${confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-600 text-white'}`}>确定</button>
             </div>
           </div>
         </div>
