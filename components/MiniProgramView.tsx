@@ -35,7 +35,7 @@ interface UserSession {
   store: string;
   qrCode: string;
   totalPrice: number;
-  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN';
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN' | 'RUNNING';
   ticketCount: number;
 }
 
@@ -348,11 +348,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   };
 
   const handleConfirmBooking = () => {
-      // 1. Process used tickets
+      // 1. Process used tickets (from selection)
+      let updatedTickets = [...myTickets];
       if (selectedTicketIds.length > 0) {
-          const updatedTickets = myTickets.map(t => selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t);
-          setMyTickets(updatedTickets);
-          localStorage.setItem('vr_guest_tickets', JSON.stringify(updatedTickets));
+          updatedTickets = updatedTickets.map(t => selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t);
       }
 
       // Calculate coverage
@@ -379,11 +378,32 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           ticketCount: selectedTicketIds.length
       };
 
+      // 3. GENERATE PAID TICKETS (If payment involved)
+      if (payCount > 0) {
+          const newPaidTicket: MyTicket = {
+              id: 'T_PAID_' + Date.now(),
+              code: Math.random().toString(36).substr(2, 9).toUpperCase(),
+              name: '预约支付票(自动核销)',
+              peopleCount: payCount,
+              date: newSession.dateStr,
+              store: homeStore,
+              status: 'USED', // Immediately used
+              expiryText: '已使用',
+              tags: ['在线支付']
+          };
+          updatedTickets = [newPaidTicket, ...updatedTickets];
+      }
+
+      // Save tickets
+      setMyTickets(updatedTickets);
+      localStorage.setItem('vr_guest_tickets', JSON.stringify(updatedTickets));
+
+      // Save sessions
       const newSessions = [newSession, ...userSessions];
       setUserSessions(newSessions);
       localStorage.setItem('vr_user_sessions', JSON.stringify(newSessions));
 
-      // 3. Create Global Booking (Sync with Staff)
+      // 4. Create Global Booking (Sync with Staff)
       const newGlobalBooking: GlobalBooking = {
           id: sessionId,
           time: bookingTime!,
@@ -400,8 +420,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
 
       window.dispatchEvent(new Event('storage_update'));
       window.dispatchEvent(new Event('new_booking_created'));
+      if (payCount > 0) {
+          window.dispatchEvent(new Event('new_user_ticket')); // Notify badge
+      }
 
-      // 4. Close Flow & Show Success Page
+      // 5. Close Flow & Show Success Page
       setShowBookingFlow(false);
       setViewingSession(newSession);
   };
@@ -430,7 +453,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     const upcomingSession = userSessions
         .filter(s => {
             // Basic filtering: not started (time-wise) and not cancelled
-            if (isSessionStarted(s) || s.status === 'CANCELLED') return false;
+            // Explicitly filter out COMPLETED sessions
+            if (isSessionStarted(s) || s.status === 'CANCELLED' || s.status === 'COMPLETED') return false;
             
             // Requirement: Do not show if transferred to backstage
             const globalState = globalBookings.find(b => b.id === s.id);
@@ -498,8 +522,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                 <div className="absolute top-0 right-0 p-3 opacity-10"><QrCode size={100} className="text-white"/></div>
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse ${upcomingSession.status === 'CHECKED_IN' ? 'bg-blue-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                            {upcomingSession.status === 'CHECKED_IN' ? '已签到' : '即将开始'}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse ${upcomingSession.status === 'CHECKED_IN' ? 'bg-blue-500 text-white' : upcomingSession.status === 'RUNNING' ? 'bg-purple-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                            {upcomingSession.status === 'CHECKED_IN' ? '已签到' : upcomingSession.status === 'RUNNING' ? '体验中' : '即将开始'}
                         </span>
                         <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Upcoming Session</span>
                     </div>
@@ -705,15 +729,37 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                         ) : (
                             userSessions.map(session => {
                                 const isStarted = isSessionStarted(session);
-                                const isCheckedIn = session.status === 'CHECKED_IN';
+                                
+                                let statusText = '待参加';
+                                let statusClass = 'bg-emerald-100 text-emerald-600';
+
+                                if (session.status === 'COMPLETED') {
+                                    statusText = '已结束';
+                                    statusClass = 'bg-gray-200 text-gray-500';
+                                } else if (session.status === 'RUNNING') {
+                                    statusText = '体验中';
+                                    statusClass = 'bg-purple-100 text-purple-600 animate-pulse';
+                                } else if (session.status === 'CHECKED_IN') {
+                                    statusText = '已签到';
+                                    statusClass = 'bg-blue-100 text-blue-600';
+                                } else if (session.status === 'CANCELLED') {
+                                    statusText = '已取消';
+                                    statusClass = 'bg-red-100 text-red-600';
+                                } else if (isStarted) {
+                                    statusText = '已过期';
+                                    statusClass = 'bg-gray-200 text-gray-500';
+                                }
+
+                                const isBgGray = ['COMPLETED', 'CANCELLED'].includes(session.status) || (isStarted && !['CHECKED_IN', 'RUNNING'].includes(session.status));
+
                                 return (
                                 <div key={session.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                                    <div className={`p-4 ${isStarted || isCheckedIn ? 'bg-gray-50' : 'bg-white'}`}>
+                                    <div className={`p-4 ${isBgGray ? 'bg-gray-50' : 'bg-white'}`}>
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isCheckedIn ? 'bg-blue-100 text-blue-600' : isStarted ? 'bg-gray-200 text-gray-500' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                        {isCheckedIn ? '已签到' : isStarted ? '已结束/进行中' : '待参加'}
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${statusClass}`}>
+                                                        {statusText}
                                                     </span>
                                                     <span className="text-xs font-bold text-gray-800">{session.dateStr} {session.time}</span>
                                                 </div>
@@ -734,7 +780,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                         <div className="flex justify-between items-center gap-2">
                                             <div className="text-[10px] text-gray-400 flex-1">订单号: {session.id}</div>
                                             
-                                            {!isCheckedIn && !isStarted && (
+                                            {!['CHECKED_IN', 'RUNNING', 'COMPLETED', 'CANCELLED'].includes(session.status) && !isSessionStarted(session) && (
                                                 <button 
                                                     onClick={() => handleGuestCheckIn(session)}
                                                     className="bg-blue-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shadow-blue-200"

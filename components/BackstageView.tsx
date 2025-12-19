@@ -38,15 +38,15 @@ const BackstageView: React.FC = () => {
       window.dispatchEvent(new Event('storage_update'));
   };
 
-  // Helper to sync status changes to the User's "My Sessions" data (vr_sessions)
+  // Helper to sync status changes to the User's "My Sessions" data (vr_user_sessions)
   const syncUserSessionStatus = (sessionId: string, newStatus: 'RUNNING' | 'COMPLETED') => {
-      const userSessionsStr = localStorage.getItem('vr_sessions');
+      const userSessionsStr = localStorage.getItem('vr_user_sessions');
       if (userSessionsStr) {
           const userSessions = JSON.parse(userSessionsStr);
           const updatedUserSessions = userSessions.map((s: any) => 
               s.id === sessionId ? { ...s, status: newStatus } : s
           );
-          localStorage.setItem('vr_sessions', JSON.stringify(updatedUserSessions));
+          localStorage.setItem('vr_user_sessions', JSON.stringify(updatedUserSessions));
           // Dispatch event to notify MiniProgramView to re-render
           window.dispatchEvent(new Event('storage_update'));
       }
@@ -62,7 +62,7 @@ const BackstageView: React.FC = () => {
       // 2. Sync with User Sessions
       syncUserSessionStatus(id, 'RUNNING');
 
-      setActiveTab('MONITOR');
+      // Note: We do NOT switch tabs automatically anymore, keeping the item in the list
   };
 
   const handleEndGame = (id: string) => {
@@ -76,8 +76,11 @@ const BackstageView: React.FC = () => {
       syncUserSessionStatus(id, 'COMPLETED');
   };
 
-  const upcomingBookings = bookings.filter(b => b.status === 'UPCOMING');
-  const runningSessions = bookings.filter(b => b.status === 'RUNNING');
+  // Tab 1: Shows ALL sessions now (Upcoming, Running, Completed) so they don't disappear
+  const allBookings = bookings; 
+  
+  // Tab 2: Shows Running and Completed sessions (Active monitoring + History)
+  const monitorSessions = bookings.filter(b => b.status === 'RUNNING' || b.status === 'COMPLETED');
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -94,36 +97,54 @@ const BackstageView: React.FC = () => {
           <div className="p-4 space-y-3">
              <div className="flex justify-between items-center text-sm text-slate-500 mb-2">
                 <span>接待列表</span>
-                <span>共 {upcomingBookings.length} 场待接待</span>
+                <span>共 {allBookings.length} 场</span>
              </div>
              
-             {upcomingBookings.length === 0 ? (
+             {allBookings.length === 0 ? (
                  <div className="text-center py-10 text-gray-400 text-sm">暂无接待场次</div>
              ) : (
-                upcomingBookings.map((booking) => {
+                allBookings.map((booking) => {
                     const timeOnly = booking.timeStr.split(' ')[1] || booking.timeStr;
+                    const isUpcoming = booking.status === 'UPCOMING';
+                    const isRunning = booking.status === 'RUNNING';
+                    const isCompleted = booking.status === 'COMPLETED';
+
                     return (
-                        <div key={booking.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 animate-in slide-in-from-bottom-2">
+                        <div key={booking.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 animate-in slide-in-from-bottom-2 ${isUpcoming ? 'border-blue-500' : isRunning ? 'border-green-500' : 'border-gray-300 opacity-80'}`}>
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-bold">{timeOnly}</span>
+                                    <span className={`text-xs px-2 py-1 rounded font-bold ${isUpcoming ? 'bg-blue-100 text-blue-700' : isRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                        {timeOnly}
+                                    </span>
                                     <h3 className="font-bold text-slate-800 mt-2">VR沉浸体验 ({booking.peopleCount}人)</h3>
                                 </div>
-                                <span className="text-orange-500 text-xs font-semibold bg-orange-50 px-2 py-1 rounded-full">待接待</span>
+                                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isUpcoming ? 'text-orange-500 bg-orange-50' : isRunning ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-100'}`}>
+                                    {isUpcoming ? '待接待' : isRunning ? '已启动' : '已结束'}
+                                </span>
                             </div>
                             <div className="flex items-center gap-2 text-slate-500 text-xs border-t pt-3 mt-1 mb-3">
                                 <User size={14} />
                                 <span>预约人：{booking.userName || '体验用户'}</span>
                             </div>
                             
-                            {/* Start Game Button */}
-                            <button 
-                                onClick={() => handleStartGame(booking.id)}
-                                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Play size={16} fill="currentColor" />
-                                启动游戏
-                            </button>
+                            {/* Action Button */}
+                            {isUpcoming ? (
+                                <button 
+                                    onClick={() => handleStartGame(booking.id)}
+                                    className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Play size={16} fill="currentColor" />
+                                    启动游戏
+                                </button>
+                            ) : (
+                                <button 
+                                    disabled
+                                    className={`w-full py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed ${isRunning ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-gray-100 text-gray-400'}`}
+                                >
+                                    {isRunning ? <Activity size={16} /> : <CheckCircle2 size={16} />}
+                                    {isRunning ? '游戏运行中...' : '场次已结束'}
+                                </button>
+                            )}
                         </div>
                     );
                 })
@@ -134,7 +155,7 @@ const BackstageView: React.FC = () => {
              {/* Status Grid */}
              <div className="grid grid-cols-2 gap-3 mb-4">
                <div className="bg-white p-3 rounded-lg shadow-sm text-center">
-                 <div className="text-2xl font-bold text-green-600">{runningSessions.length}</div>
+                 <div className="text-2xl font-bold text-green-600">{bookings.filter(b => b.status === 'RUNNING').length}</div>
                  <div className="text-xs text-gray-500">正在运行</div>
                </div>
                <div className="bg-white p-3 rounded-lg shadow-sm text-center">
@@ -143,45 +164,60 @@ const BackstageView: React.FC = () => {
                </div>
              </div>
 
-             {/* Running Sessions List */}
-             {runningSessions.length === 0 ? (
+             {/* Running/Completed Sessions List */}
+             {monitorSessions.length === 0 ? (
                  <div className="text-center py-10 text-gray-400 text-sm flex flex-col items-center">
                      <Activity size={48} className="opacity-20 mb-2" />
-                     暂无正在进行的游戏
+                     暂无监控数据
                      <p className="text-xs mt-1 text-gray-300">请在预约列表启动场次</p>
                  </div>
              ) : (
-                 runningSessions.map((session) => (
-                    <div key={session.id} className="bg-white rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95">
-                        <div className="bg-green-50 px-4 py-2 border-b border-green-100 flex justify-between items-center">
-                            <span className="font-bold text-sm text-green-800 flex items-center gap-2">
-                                <Activity size={14} className="animate-pulse" />
-                                运行中 - {session.timeStr.split(' ')[1]}
+                 monitorSessions.map((session) => {
+                    const isRunning = session.status === 'RUNNING';
+                    return (
+                    <div key={session.id} className={`bg-white rounded-xl shadow-sm overflow-hidden animate-in fade-in zoom-in-95 ${!isRunning ? 'opacity-80 grayscale-[0.5]' : ''}`}>
+                        <div className={`${isRunning ? 'bg-green-50 border-green-100 text-green-800' : 'bg-gray-100 border-gray-200 text-gray-600'} px-4 py-2 border-b flex justify-between items-center`}>
+                            <span className="font-bold text-sm flex items-center gap-2">
+                                <Activity size={14} className={isRunning ? "animate-pulse" : ""} />
+                                {isRunning ? `运行中 - ${session.timeStr.split(' ')[1]}` : `已结束 - ${session.timeStr.split(' ')[1]}`}
                             </span>
-                            <span className="text-xs text-green-600 font-mono">
+                            <span className={`text-xs font-mono ${isRunning ? 'text-green-600' : 'text-gray-500'}`}>
                                 {session.userName} ({session.peopleCount}人)
                             </span>
                         </div>
                         <div className="p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="text-xs text-gray-500">当前进度</div>
-                                <div className="text-xs font-bold text-blue-600">进行中</div>
+                                <div className={`text-xs font-bold ${isRunning ? 'text-blue-600' : 'text-gray-500'}`}>
+                                    {isRunning ? '进行中' : '已完成'}
+                                </div>
                             </div>
                             {/* Fake Progress Bar Animation */}
                             <div className="w-full bg-gray-200 rounded-full h-2 mb-6 overflow-hidden">
-                                <div className="bg-blue-600 h-2 rounded-full animate-[width_10s_linear_infinite]" style={{ width: '60%' }}></div>
+                                <div 
+                                    className={`h-2 rounded-full ${isRunning ? 'bg-blue-600 animate-[width_10s_linear_infinite]' : 'bg-gray-400'}`} 
+                                    style={{ width: isRunning ? '60%' : '100%' }}
+                                ></div>
                             </div>
                             
-                            <button 
-                                onClick={() => handleEndGame(session.id)}
-                                className="w-full bg-red-50 text-red-600 border border-red-100 py-2.5 rounded-lg font-bold text-sm hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Square size={16} fill="currentColor" />
-                                结束体验
-                            </button>
+                            {isRunning ? (
+                                <button 
+                                    onClick={() => handleEndGame(session.id)}
+                                    className="w-full bg-red-50 text-red-600 border border-red-100 py-2.5 rounded-lg font-bold text-sm hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Square size={16} fill="currentColor" />
+                                    结束体验
+                                </button>
+                            ) : (
+                                <div className="w-full bg-gray-50 text-gray-400 border border-gray-100 py-2.5 rounded-lg font-bold text-sm text-center flex items-center justify-center gap-2">
+                                    <CheckCircle2 size={16} />
+                                    体验已结束
+                                </div>
+                            )}
                         </div>
                     </div>
-                 ))
+                    );
+                 })
              )}
           </div>
         )}
