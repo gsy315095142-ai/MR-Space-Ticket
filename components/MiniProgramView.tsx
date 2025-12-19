@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle, Upload, Box, TicketCheck, History, Wallet, Trophy, ShieldCheck, Search, FileText, Phone, CheckSquare, Square, Ticket as TicketIcon } from 'lucide-react';
-import { MerchItem, UserMerchTicket, GlobalBooking } from '../types';
+import { MerchItem, UserMerchTicket, GlobalBooking, MyTicket, UserSession } from '../types';
+import MiniProgramHome from './MiniProgramHome';
 
 interface MiniProgramViewProps {
   resetTrigger?: number;
@@ -11,32 +12,6 @@ const DEFAULT_PRODUCTS: MerchItem[] = [
   { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
   { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
 ];
-
-interface MyTicket {
-  id: string;
-  code: string;
-  name: string;
-  date: string;
-  store: string;
-  status: 'PENDING' | 'USED' | 'EXPIRED';
-  tags?: string[];
-  expiryText?: string;
-  peopleCount?: number;
-}
-
-interface UserSession {
-  id: string;
-  dateStr: string;
-  fullDate: string; // YYYY-MM-DD
-  time: string;
-  guests: number;
-  store: string;
-  qrCode: string;
-  totalPrice: number;
-  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN' | 'RUNNING';
-  ticketCount: number;
-  pointsClaimed?: boolean;
-}
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   // --- 1. SHARED DATA STATE ---
@@ -344,146 +319,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   };
 
   // --- 5. GUEST RENDERERS ---
-  const GuestHome = () => {
-    // Find nearest upcoming session
-    const upcomingSession = userSessions
-        .filter(s => {
-            // Basic filtering: not started (time-wise) and not cancelled
-            // Explicitly filter out COMPLETED sessions
-            if (isSessionStarted(s) || s.status === 'CANCELLED' || s.status === 'COMPLETED') return false;
-            
-            // Requirement: Do not show if transferred to backstage
-            const globalState = globalBookings.find(b => b.id === s.id);
-            if (globalState && globalState.status === 'TRANSFERRED') return false;
-            
-            return true;
-        })
-        .sort((a, b) => {
-             const da = a.dateStr === '今天' ? 0 : a.dateStr === '明天' ? 1 : 2;
-             const db = b.dateStr === '今天' ? 0 : b.dateStr === '明天' ? 1 : 2;
-             if (da !== db) return da - db;
-             return a.time.localeCompare(b.time);
-        })[0];
-
-    return (
-    <div className="flex flex-col bg-white pb-32">
-      {/* Banner */}
-      <div className="relative h-80 w-full shrink-0">
-        <img src="https://images.unsplash.com/photo-1626379953822-baec19c3accd?q=80&w=1000" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-        <div className="absolute top-4 left-4 z-20"><div className="flex items-center gap-1 text-white bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20"><MapPin size={12} /><span className="text-xs font-bold max-w-[120px] truncate">{homeStore}</span></div></div>
-        <div className="absolute bottom-20 left-6 text-white"><div className="text-[10px] font-bold bg-purple-500/90 backdrop-blur-sm px-2 py-0.5 rounded inline-block mb-2 shadow-lg shadow-purple-900/50">XR大空间旗舰店</div><h1 className="text-3xl font-black leading-tight drop-shadow-md">LUMI魔法学院<br />沉浸式奇幻之旅</h1></div>
-      </div>
-      
-      {/* Quick Actions */}
-      <div className="px-5 -mt-12 relative z-10 grid grid-cols-2 gap-4">
-        <button 
-          onClick={() => {
-            setBookingDateIdx(0);
-            setBookingTime(null);
-            setBookingGuests(1);
-            setShowBookingFlow(true);
-          }}
-          className="bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200 border border-slate-100 flex flex-col justify-between h-40 active:scale-95 transition-transform text-left group overflow-hidden relative"
-        >
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center relative z-10 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors"><CalendarDays size={24} /></div>
-          <div className="relative z-10">
-            <div className="font-black text-lg text-slate-800">预约购票</div>
-            <div className="text-[10px] text-slate-400 mt-1">沉浸式奇幻体验</div>
-          </div>
-        </button>
-        <button 
-          onClick={() => {
-            setRedeemCode('');
-            setShowRedeemFlow(true);
-          }}
-          className="bg-white rounded-[2rem] p-5 shadow-xl shadow-slate-200 border border-slate-100 flex flex-col justify-between h-40 active:scale-95 transition-transform text-left group overflow-hidden relative"
-        >
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-50 rounded-full group-hover:scale-110 transition-transform"></div>
-          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center relative z-10 shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-colors"><Gift size={24} /></div>
-          <div className="relative z-10">
-            <div className="font-black text-lg text-slate-800">兑换体验券</div>
-            <div className="text-[10px] text-slate-400 mt-1">魔法验证码兑换</div>
-          </div>
-        </button>
-      </div>
-
-      {/* Main Content Sections */}
-      <div className="px-5 mt-8 space-y-6">
-
-        {/* Upcoming Session Card */}
-        {upcomingSession && (
-             <div onClick={() => setViewingSession(upcomingSession)} className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-5 shadow-xl shadow-slate-300 border border-slate-700 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all">
-                <div className="absolute top-0 right-0 p-3 opacity-10"><QrCode size={100} className="text-white"/></div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse ${upcomingSession.status === 'CHECKED_IN' ? 'bg-blue-500 text-white' : upcomingSession.status === 'RUNNING' ? 'bg-purple-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                            {upcomingSession.status === 'CHECKED_IN' ? '已签到' : upcomingSession.status === 'RUNNING' ? '体验中' : '即将开始'}
-                        </span>
-                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Upcoming Session</span>
-                    </div>
-                    <div className="flex items-end gap-3 mb-2">
-                        <div className="text-3xl font-black text-white leading-none">{upcomingSession.time}</div>
-                        <div className="text-sm font-bold text-slate-300 mb-1">{upcomingSession.dateStr}</div>
-                    </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <MapPin size={10} /> {upcomingSession.store}
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
-                        <div className="flex -space-x-2">
-                            {Array.from({length: Math.min(3, upcomingSession.guests)}).map((_,i) => (
-                                <div key={i} className="w-6 h-6 rounded-full bg-slate-600 border-2 border-slate-800 flex items-center justify-center text-[8px] text-white">
-                                    <User size={10} />
-                                </div>
-                            ))}
-                            {upcomingSession.guests > 3 && <div className="w-6 h-6 rounded-full bg-slate-700 border-2 border-slate-800 flex items-center justify-center text-[8px] text-white font-bold">+{upcomingSession.guests-3}</div>}
-                        </div>
-                        <button className="bg-white text-slate-900 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 group-hover:bg-purple-400 group-hover:text-white transition-colors">
-                            查看凭证 <ChevronRight size={10} />
-                        </button>
-                    </div>
-                </div>
-             </div>
-        )}
-
-        {/* Merch Store Module */}
-        <section>
-          <div className="flex items-center justify-between px-1 mb-4">
-            <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg"><ShoppingBag size={20} className="text-purple-600" /> 周边商城</h3>
-            <button onClick={() => setShowStore(true)} className="text-xs font-bold text-slate-400 hover:text-purple-600">更多好物 ></button>
-          </div>
-          <button onClick={() => setShowStore(true)} className="relative w-full h-48 rounded-[2rem] overflow-hidden shadow-2xl active:scale-[0.98] transition-all group">
-            <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent"></div>
-            <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
-              <div className="text-xs text-purple-300 font-black mb-2 flex items-center gap-1 uppercase tracking-widest"><Sparkles size={12}/> Artisan Magic</div>
-              <div className="text-3xl font-black mb-2">魔法学院<br/>周边上新</div>
-              <div className="text-[10px] opacity-80 max-w-[150px] leading-relaxed">让魔法带回家，收藏属于你的回忆</div>
-            </div>
-          </button>
-        </section>
-
-        {/* Project Intro Module */}
-        <section>
-          <div className="flex items-center justify-between px-1 mb-4">
-            <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg"><BookOpen size={20} className="text-blue-600" /> 项目介绍</h3>
-            <button onClick={() => setShowIntro(true)} className="text-xs font-bold text-slate-400 hover:text-blue-600">了解详情 ></button>
-          </div>
-          <button onClick={() => setShowIntro(true)} className="relative w-full h-40 rounded-[2rem] overflow-hidden shadow-xl group active:scale-[0.98] transition-all border border-slate-100">
-            <img src="https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?q=80&w=600" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 p-6 text-left w-full">
-              <div className="text-xl font-black text-white mb-1 flex items-center gap-2">探索魔法学院奥秘 <ChevronRight size={16} className="text-white/50"/></div>
-              <div className="text-[10px] text-white/70 truncate">在300平米物理空间内，开启属于你的魔法传奇</div>
-            </div>
-          </button>
-        </section>
-      </div>
-    </div>
-    );
-  };
-
   const GuestMine = () => {
     // Ensure default tab is valid if coming from a stale state
     useEffect(() => {
@@ -755,7 +590,28 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   return (
     <div className="flex flex-col h-full bg-white relative overflow-hidden">
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
-        {activeTab === 'HOME' ? <GuestHome /> : <GuestMine />}
+        {activeTab === 'HOME' ? (
+          <MiniProgramHome 
+            userSessions={userSessions}
+            globalBookings={globalBookings}
+            homeStore={homeStore}
+            onStartBooking={() => {
+              setBookingDateIdx(0);
+              setBookingTime(null);
+              setBookingGuests(1);
+              setShowBookingFlow(true);
+            }}
+            onStartRedeem={() => {
+              setRedeemCode('');
+              setShowRedeemFlow(true);
+            }}
+            onViewSession={(session) => setViewingSession(session)}
+            onShowStore={() => setShowStore(true)}
+            onShowIntro={() => setShowIntro(true)}
+          />
+        ) : (
+          <GuestMine />
+        )}
       </div>
 
       <div className="absolute bottom-0 w-full h-18 bg-white border-t flex justify-around items-center px-6 pb-2 shrink-0 z-40">
@@ -786,15 +642,28 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
               </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+            {/* Points Banner */}
+            <div className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-2xl p-6 text-white shadow-xl shadow-purple-200 relative overflow-hidden shrink-0">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-1 text-xs font-bold text-purple-200 mb-1"><Sparkles size={12}/> 我的积分</div>
+                    <div className="text-4xl font-black mb-3 tracking-tight flex items-baseline gap-1">{userPoints} <span className="text-sm font-bold opacity-80">pts</span></div>
+                    <div className="text-[10px] bg-white/20 backdrop-blur-md inline-block px-3 py-1.5 rounded-lg text-white font-medium">兑换好礼，开启魔法回忆</div>
+                </div>
+                <div className="absolute right-0 bottom-[-10px] text-white opacity-10 transform translate-x-2 translate-y-2">
+                   <Gift size={120} />
+                </div>
+            </div>
+
+            {/* Products List */}
             {products.map(product => (
               <div key={product.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-4">
-                <div className="relative">
-                  <img src={product.image} className="w-24 h-24 rounded-lg object-cover bg-gray-100" />
-                  {(!product.stock || product.stock <= 0) && <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center text-white text-[10px] font-bold">已售罄</div>}
+                <div className="relative shrink-0 w-24 h-24">
+                  <img src={product.image} className="w-full h-full rounded-lg object-cover bg-gray-100" />
+                  {(!product.stock || product.stock <= 0) && <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center text-white text-[10px] font-bold backdrop-blur-[1px]">已售罄</div>}
                 </div>
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
-                    <h4 className="font-bold text-gray-800 text-sm">{product.name}</h4>
+                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{product.name}</h4>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
                       <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded">{product.points} 分</span>
                       <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">¥{product.price}</span>

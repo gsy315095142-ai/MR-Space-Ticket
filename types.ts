@@ -41,3 +41,29 @@ export interface GlobalBooking {
     store: string;
     userName: string;
 }
+
+export interface MyTicket {
+  id: string;
+  code: string;
+  name: string;
+  date: string;
+  store: string;
+  status: 'PENDING' | 'USED' | 'EXPIRED';
+  tags?: string[];
+  expiryText?: string;
+  peopleCount?: number;
+}
+
+export interface UserSession {
+  id: string;
+  dateStr: string;
+  fullDate: string; // YYYY-MM-DD
+  time: string;
+  guests: number;
+  store: string;
+  qrCode: string;
+  totalPrice: number;
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN' | 'RUNNING';
+  ticketCount: number;
+  pointsClaimed?: boolean;
+}
