@@ -250,7 +250,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     const currentBackstage = storedBackstage ? JSON.parse(storedBackstage) : [];
     
     const newItem = {
-        id: `SESSION_${booking.id}_${Date.now()}`,
+        id: booking.id, // KEEP ORIGINAL ID to allow syncing status back to UserSession
         timeStr: booking.time,
         location: booking.store,
         peopleCount: booking.guests,
