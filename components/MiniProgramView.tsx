@@ -428,7 +428,16 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const GuestHome = () => {
     // Find nearest upcoming session
     const upcomingSession = userSessions
-        .filter(s => !isSessionStarted(s) && s.status !== 'CANCELLED')
+        .filter(s => {
+            // Basic filtering: not started (time-wise) and not cancelled
+            if (isSessionStarted(s) || s.status === 'CANCELLED') return false;
+            
+            // Requirement: Do not show if transferred to backstage
+            const globalState = globalBookings.find(b => b.id === s.id);
+            if (globalState && globalState.status === 'TRANSFERRED') return false;
+            
+            return true;
+        })
         .sort((a, b) => {
              const da = a.dateStr === '今天' ? 0 : a.dateStr === '明天' ? 1 : 2;
              const db = b.dateStr === '今天' ? 0 : b.dateStr === '明天' ? 1 : 2;
