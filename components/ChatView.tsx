@@ -32,6 +32,8 @@ const ChatView: React.FC = () => {
   };
 
   const handleClaimTicket = (msg: any) => {
+      if (msg.claimed) return;
+
       const stored = localStorage.getItem('vr_guest_tickets');
       const tickets = stored ? JSON.parse(stored) : [];
       
@@ -39,6 +41,7 @@ const ChatView: React.FC = () => {
           id: `T_CHAT_${Date.now()}`,
           code: Math.random().toString(36).substring(2, 9).toUpperCase(),
           name: msg.ticketData?.name || '客服赠票',
+          peopleCount: msg.ticketData?.count || 1,
           date: new Date().toLocaleDateString(),
           store: 'LUMI魔法学院', // Default store
           status: 'PENDING',
@@ -46,7 +49,17 @@ const ChatView: React.FC = () => {
           tags: ['客服赠送']
       };
       
+      // 1. Save Ticket
       localStorage.setItem('vr_guest_tickets', JSON.stringify([newTicket, ...tickets]));
+      
+      // 2. Mark Message as Claimed
+      const updatedMessages = messages.map(m => 
+          m.id === msg.id ? { ...m, claimed: true } : m
+      );
+      setMessages(updatedMessages);
+      localStorage.setItem('vr_chat_messages', JSON.stringify(updatedMessages));
+
+      // 3. Dispatch Events
       window.dispatchEvent(new Event('storage_update'));
       window.dispatchEvent(new Event('new_user_ticket'));
       
@@ -81,14 +94,19 @@ const ChatView: React.FC = () => {
                       </div>
                     </div>
                   ) : msg.type === 'TICKET_LINK' ? (
-                    <div onClick={() => handleClaimTicket(msg)} className="max-w-[85%] bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden cursor-pointer active:opacity-80 transition-opacity">
-                      <div className="bg-blue-600 p-3 text-white text-xs font-bold flex items-center gap-2">
+                    <div 
+                        onClick={() => !msg.claimed && handleClaimTicket(msg)} 
+                        className={`max-w-[85%] bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${msg.claimed ? 'border-gray-200 opacity-70' : 'border-blue-100 cursor-pointer active:opacity-80'}`}
+                    >
+                      <div className={`${msg.claimed ? 'bg-gray-400' : 'bg-blue-600'} p-3 text-white text-xs font-bold flex items-center gap-2`}>
                           <Ticket size={16} />
                           <span>VR体验赠票</span>
                       </div>
                       <div className="p-3">
-                          <div className="font-bold text-sm text-gray-800 mb-1">{msg.ticketData.name}</div>
-                          <div className="text-[10px] text-blue-500">点击领取放入卡包 ></div>
+                          <div className={`font-bold text-sm mb-1 ${msg.claimed ? 'text-gray-500' : 'text-gray-800'}`}>{msg.ticketData.name}</div>
+                          <div className={`text-[10px] ${msg.claimed ? 'text-gray-400' : 'text-blue-500'}`}>
+                              {msg.claimed ? '已领取' : '点击领取放入卡包 >'}
+                          </div>
                       </div>
                     </div>
                   ) : (

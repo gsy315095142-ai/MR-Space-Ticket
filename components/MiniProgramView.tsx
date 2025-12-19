@@ -23,6 +23,7 @@ interface MyTicket {
   status: 'PENDING' | 'USED' | 'EXPIRED';
   tags?: string[];
   expiryText?: string;
+  peopleCount?: number;
 }
 
 interface UserSession {
@@ -318,14 +319,16 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     // Logic: 1 -> Single, 2 -> Double, 3 -> Triple, Other -> Quad
     const firstDigit = redeemCode.charAt(0);
     let typeName = '四人票';
-    if (firstDigit === '1') typeName = '单人票';
-    else if (firstDigit === '2') typeName = '两人票';
-    else if (firstDigit === '3') typeName = '三人票';
+    let pCount = 4;
+    if (firstDigit === '1') { typeName = '单人票'; pCount = 1; }
+    else if (firstDigit === '2') { typeName = '两人票'; pCount = 2; }
+    else if (firstDigit === '3') { typeName = '三人票'; pCount = 3; }
     
     const newTicket: MyTicket = {
         id: 't' + Date.now(),
         code: redeemCode,
         name: `【团购兑换】${typeName}`,
+        peopleCount: pCount,
         date: new Date().toLocaleString().replace(/\//g, '-'),
         store: homeStore,
         status: 'PENDING' as const,
@@ -352,6 +355,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           localStorage.setItem('vr_guest_tickets', JSON.stringify(updatedTickets));
       }
 
+      // Calculate coverage
+      const selectedTickets = myTickets.filter(t => selectedTicketIds.includes(t.id));
+      const totalCovered = selectedTickets.reduce((sum, t) => sum + (t.peopleCount || 1), 0);
+      const payCount = Math.max(0, bookingGuests - totalCovered);
+
       // 2. Create User Session (Local)
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + bookingDateIdx);
@@ -366,7 +374,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           guests: bookingGuests,
           store: homeStore,
           qrCode: Math.random().toString(36).substring(7).toUpperCase(),
-          totalPrice: (bookingGuests - selectedTicketIds.length) * 98,
+          totalPrice: payCount * 98,
           status: 'UPCOMING',
           ticketCount: selectedTicketIds.length
       };
@@ -633,7 +641,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                 {/* Content */}
                                 <div className="p-4 pt-3 relative">
                                     <div className="space-y-2 text-xs text-gray-500 mb-3">
-                                        <div className="flex justify-between"><span>票券类型：</span><span className="text-gray-800 font-bold">{ticket.name}</span></div>
+                                        <div className="flex justify-between">
+                                            <span>票券类型：</span>
+                                            <span className="text-gray-800 font-bold">
+                                                {ticket.name} 
+                                                <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-normal">{(ticket.peopleCount || 1)}人权益</span>
+                                            </span>
+                                        </div>
                                         <div className="flex justify-between"><span>{ticket.status === 'PENDING' ? '兑换时间' : '场次地点'}：</span><span className="text-gray-800">{ticket.date}</span></div>
                                         <div className="flex justify-between"><span>所属门店：</span><span className="text-gray-800">{ticket.store}</span></div>
                                     </div>
@@ -1437,7 +1451,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                             if (isSelected) {
                                                 setSelectedTicketIds(prev => prev.filter(id => id !== ticket.id));
                                             } else {
-                                                if (selectedTicketIds.length < bookingGuests) {
+                                                const currentCovered = selectedTicketIds.reduce((sum, id) => {
+                                                    const t = myTickets.find(mt => mt.id === id);
+                                                    return sum + (t?.peopleCount || 1);
+                                                }, 0);
+                                                
+                                                if (currentCovered < bookingGuests) {
                                                     setSelectedTicketIds(prev => [...prev, ticket.id]);
                                                 }
                                             }
@@ -1445,7 +1464,12 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                         className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-white'}`}
                                      >
                                          <div>
-                                             <div className="text-xs font-bold text-gray-800">{ticket.name}</div>
+                                             <div className="text-xs font-bold text-gray-800">
+                                                {ticket.name} 
+                                                <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-normal">
+                                                    {(ticket.peopleCount || 1)}人权益
+                                                </span>
+                                             </div>
                                              <div className="text-[10px] text-gray-400">{ticket.code}</div>
                                          </div>
                                          {isSelected ? <CheckSquare size={18} className="text-purple-600" /> : <Square size={18} className="text-gray-300" />}
@@ -1469,22 +1493,32 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                     </button>
                ) : (
                    <div className="space-y-3">
-                       <div className="flex justify-between items-end px-2">
-                           <div className="text-xs text-gray-500">
-                               已选票券: <span className="font-bold text-gray-800">{selectedTicketIds.length}</span> 张
-                               {(bookingGuests - selectedTicketIds.length) > 0 && <span className="ml-2 text-orange-600">需支付: {bookingGuests - selectedTicketIds.length} 人</span>}
+                       {(() => {
+                           const selectedTicketsList = myTickets.filter(t => selectedTicketIds.includes(t.id));
+                           const totalCovered = selectedTicketsList.reduce((acc, t) => acc + (t.peopleCount || 1), 0);
+                           const payCount = Math.max(0, bookingGuests - totalCovered);
+                           
+                           return (
+                           <>
+                           <div className="flex justify-between items-end px-2">
+                               <div className="text-xs text-gray-500">
+                                   已选票券抵扣: <span className="font-bold text-gray-800">{totalCovered}</span> 人
+                                   {payCount > 0 && <span className="ml-2 text-orange-600">需支付: {payCount} 人</span>}
+                               </div>
+                               <div className="text-xl font-black text-slate-900">
+                                   <span className="text-xs font-normal text-gray-400 mr-1">合计</span>
+                                   ¥{payCount * 98}
+                               </div>
                            </div>
-                           <div className="text-xl font-black text-slate-900">
-                               <span className="text-xs font-normal text-gray-400 mr-1">合计</span>
-                               ¥{(bookingGuests - selectedTicketIds.length) * 98}
-                           </div>
-                       </div>
-                       <button 
-                            onClick={handleConfirmBooking}
-                            className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                        >
-                            {(bookingGuests - selectedTicketIds.length) > 0 ? '确认支付并预约' : '确认预约'}
-                        </button>
+                           <button 
+                                onClick={handleConfirmBooking}
+                                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                {payCount > 0 ? '确认支付并预约' : '确认预约'}
+                            </button>
+                           </>
+                           );
+                       })()}
                    </div>
                )}
             </div>
