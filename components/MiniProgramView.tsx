@@ -37,6 +37,7 @@ interface UserSession {
   totalPrice: number;
   status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN' | 'RUNNING';
   ticketCount: number;
+  pointsClaimed?: boolean;
 }
 
 interface GlobalBooking {
@@ -56,7 +57,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [userMerchTickets, setUserMerchTickets] = useState<UserMerchTicket[]>([]);
   const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [generatedTickets, setGeneratedTickets] = useState<any[]>([]);
-  const [userPoints, setUserPoints] = useState(1200);
+  const [userPoints, setUserPoints] = useState(0);
   
   // Shared Bookings State (for Staff Control <-> Guest Booking Sync)
   const [globalBookings, setGlobalBookings] = useState<GlobalBooking[]>([]);
@@ -126,6 +127,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     const storedGuestTickets = localStorage.getItem('vr_guest_tickets');
     if (storedGuestTickets) setMyTickets(JSON.parse(storedGuestTickets));
     
+    // Load Points
+    const storedPoints = localStorage.getItem('vr_user_points');
+    if (storedPoints) setUserPoints(parseInt(storedPoints));
+
     // Load Global Bookings for Staff Control
     const storedGlobal = localStorage.getItem('vr_global_bookings');
     if (storedGlobal) {
@@ -224,6 +229,21 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
 
       window.dispatchEvent(new Event('storage_update'));
       showToast('签到成功！请等待工作人员引导入场');
+  };
+
+  const handleClaimPoints = (session: UserSession) => {
+      const pointsToAdd = session.guests * 500;
+      const newPoints = userPoints + pointsToAdd;
+      setUserPoints(newPoints);
+      localStorage.setItem('vr_user_points', newPoints.toString());
+
+      const updatedSessions = userSessions.map(s => 
+          s.id === session.id ? { ...s, pointsClaimed: true } : s
+      );
+      setUserSessions(updatedSessions);
+      localStorage.setItem('vr_user_sessions', JSON.stringify(updatedSessions));
+      
+      showToast(`已领取 ${pointsToAdd} 积分！`);
   };
 
   const executeTransfer = (booking: GlobalBooking) => {
@@ -603,6 +623,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                          <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop" className="w-16 h-16 rounded-full border-2 border-white shadow-md object-cover" />
                          <div>
                              <div className="text-lg font-bold text-gray-800">微信名称</div>
+                             <div className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mt-1 inline-flex items-center gap-1">
+                                 <Gift size={10} /> 积分: {userPoints}
+                             </div>
                          </div>
                      </div>
                      <div className="flex gap-4">
@@ -796,6 +819,23 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                                 查看详情
                                             </button>
                                         </div>
+
+                                        {session.status === 'COMPLETED' && (
+                                            <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
+                                                {session.pointsClaimed ? (
+                                                    <button disabled className="w-full bg-gray-100 text-gray-400 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1 cursor-not-allowed">
+                                                        <CheckCircle size={14} /> 已领取 {session.guests * 500} 积分
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => handleClaimPoints(session)}
+                                                        className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold py-2 rounded-lg shadow-md shadow-orange-100 active:scale-95 transition-all flex items-center justify-center gap-1"
+                                                    >
+                                                        <Gift size={14} /> 领取 {session.guests * 500} 积分
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 )
@@ -1209,7 +1249,13 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
 
       {showStore && (
         <div className="absolute inset-0 z-[120] bg-gray-50 animate-in slide-in-from-bottom flex flex-col">
-          <div className="bg-white p-4 flex items-center border-b shadow-sm"><button onClick={() => setShowStore(false)} className="p-1 rounded-full"><ChevronLeft size={24} /></button><h2 className="flex-1 text-center font-bold">周边商城</h2><div className="w-8"></div></div>
+          <div className="bg-white p-4 flex items-center border-b shadow-sm">
+              <button onClick={() => setShowStore(false)} className="p-1 rounded-full"><ChevronLeft size={24} /></button>
+              <h2 className="flex-1 text-center font-bold">周边商城</h2>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                  <Gift size={12} /> {userPoints}
+              </div>
+          </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
             {products.map(product => (
               <div key={product.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-4">
@@ -1266,7 +1312,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                   productId: selectedProduct.id, productName: selectedProduct.name,
                   status: 'PENDING', redeemMethod: method, timestamp: new Date().toLocaleString()
                 }));
-                if (method === 'POINTS') setUserPoints(prev => prev - (selectedProduct.points * qty));
+                if (method === 'POINTS') {
+                    const newPoints = userPoints - (selectedProduct.points * qty);
+                    setUserPoints(newPoints);
+                    localStorage.setItem('vr_user_points', newPoints.toString());
+                }
                 const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
                 saveProducts(updatedProducts);
                 const storedMerch = localStorage.getItem('vr_user_merch');
