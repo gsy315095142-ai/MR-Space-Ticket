@@ -34,8 +34,19 @@ interface UserSession {
   store: string;
   qrCode: string;
   totalPrice: number;
-  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
+  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED' | 'CHECKED_IN';
   ticketCount: number;
+}
+
+interface GlobalBooking {
+    id: string;
+    time: string;
+    dateStr: string;
+    guests: number;
+    checkInCount: number;
+    status: 'BOOKED' | 'CHECKED_IN' | 'TRANSFERRED';
+    store: string;
+    userName: string;
 }
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigger, initialAdminTab }) => {
@@ -45,16 +56,19 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [generatedTickets, setGeneratedTickets] = useState<any[]>([]);
   const [userPoints, setUserPoints] = useState(1200);
+  
+  // Shared Bookings State (for Staff Control <-> Guest Booking Sync)
+  const [globalBookings, setGlobalBookings] = useState<GlobalBooking[]>([]);
 
   // --- 2. STAFF STATE ---
   const [adminTab, setAdminTab] = useState<'TICKETS' | 'DATA' | 'IDENTITY' | 'CONTROL' | 'MERCH'>(initialAdminTab || 'TICKETS');
   const [ticketSubTab, setTicketSubTab] = useState<'GENERATE' | 'LIST'>('GENERATE');
   const [merchAdminSubTab, setMerchAdminSubTab] = useState<'MANAGE' | 'SALES' | 'STATS'>('SALES');
   const [editingProduct, setEditingProduct] = useState<MerchItem | null>(null);
-  const [adminSessions, setAdminSessions] = useState([
-    { id: 1, time: '14:00 - 14:30', count: 2, status: 'WAITING' },
-    { id: 2, time: '14:30 - 15:00', count: 4, status: 'WAITING' },
-  ]);
+  
+  const [showTransferConfirmModal, setShowTransferConfirmModal] = useState(false);
+  const [sessionToTransfer, setSessionToTransfer] = useState<GlobalBooking | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- 3. GUEST STATE ---
@@ -107,6 +121,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     }
     const storedSessions = localStorage.getItem('vr_user_sessions');
     if (storedSessions) setUserSessions(JSON.parse(storedSessions));
+    
+    // Load Global Bookings for Staff Control
+    const storedGlobal = localStorage.getItem('vr_global_bookings');
+    if (storedGlobal) {
+        setGlobalBookings(JSON.parse(storedGlobal));
+    } else {
+        setGlobalBookings([]);
+    }
   };
 
   useEffect(() => {
@@ -179,26 +201,75 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
     window.dispatchEvent(new Event('storage_update'));
   };
 
-  const handleTransferToBackstage = (session: { id: number; time: string; count: number; status: string }) => {
-    setAdminSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'TRANSFERRED' } : s));
-    
+  // --- ACTIONS ---
+
+  const handleGuestCheckIn = (session: UserSession) => {
+      // 1. Update User Session Status
+      const updatedUserSessions = userSessions.map(s => 
+          s.id === session.id ? { ...s, status: 'CHECKED_IN' as const } : s
+      );
+      setUserSessions(updatedUserSessions);
+      localStorage.setItem('vr_user_sessions', JSON.stringify(updatedUserSessions));
+
+      // 2. Update Global Booking Status
+      const updatedGlobalBookings = globalBookings.map(b => 
+          b.id === session.id ? { ...b, status: 'CHECKED_IN' as const, checkInCount: b.guests } : b
+      );
+      setGlobalBookings(updatedGlobalBookings);
+      localStorage.setItem('vr_global_bookings', JSON.stringify(updatedGlobalBookings));
+
+      window.dispatchEvent(new Event('storage_update'));
+      showToast('签到成功！请等待工作人员引导入场');
+  };
+
+  const executeTransfer = (booking: GlobalBooking) => {
+    // Update local global bookings status
+    const updatedBookings = globalBookings.map(b => 
+        b.id === booking.id 
+        ? { ...b, status: 'TRANSFERRED' as const } 
+        : b
+    );
+    setGlobalBookings(updatedBookings);
+    localStorage.setItem('vr_global_bookings', JSON.stringify(updatedBookings));
+
+    // Update user session status as well (if on same device/simulated)
+    const storedSessions = localStorage.getItem('vr_user_sessions');
+    if (storedSessions) {
+        const sessions: UserSession[] = JSON.parse(storedSessions);
+        // Force update status to checked in if transferred manually
+        const updatedSessions = sessions.map(s => s.id === booking.id ? { ...s, status: 'CHECKED_IN' as const } : s); 
+        localStorage.setItem('vr_user_sessions', JSON.stringify(updatedSessions));
+    }
+
+    // Add to backstage data
     const storedBackstage = localStorage.getItem('vr_backstage_data');
     const currentBackstage = storedBackstage ? JSON.parse(storedBackstage) : [];
     
     const newItem = {
-        id: `SESSION_${session.id}_${Date.now()}`,
-        timeStr: session.time,
-        location: homeStore,
-        peopleCount: session.count,
+        id: `SESSION_${booking.id}_${Date.now()}`,
+        timeStr: booking.time,
+        location: booking.store,
+        peopleCount: booking.guests,
         status: 'UPCOMING',
-        userName: '现场团客'
+        userName: booking.userName
     };
     
     localStorage.setItem('vr_backstage_data', JSON.stringify([...currentBackstage, newItem]));
     window.dispatchEvent(new Event('storage_update'));
     window.dispatchEvent(new Event('session_transferred_to_backstage'));
     
-    alert(`场次 [${session.time}] 已转入后厅系统`);
+    setShowTransferConfirmModal(false);
+    setSessionToTransfer(null);
+    showToast(`场次 [${booking.time}] 已转入后厅系统`);
+  };
+
+  const handleTransferToBackstage = (booking: GlobalBooking) => {
+    if (booking.status === 'CHECKED_IN') {
+        executeTransfer(booking);
+    } else {
+        setSessionToTransfer(booking);
+        setShowTransferConfirmModal(true);
+    }
   };
 
   const handleRedeemConfirm = () => {
@@ -236,13 +307,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           setMyTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status: 'USED' as const } : t));
       }
 
-      // 2. Create Session
+      // 2. Create User Session (Local)
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + bookingDateIdx);
       const dateStr = `${targetDate.getMonth()+1}/${targetDate.getDate()} 周${['日','一','二','三','四','五','六'][targetDate.getDay()]}`;
 
+      const sessionId = 'S' + Date.now();
       const newSession: UserSession = {
-          id: 'S' + Date.now(),
+          id: sessionId,
           dateStr: bookingDateIdx === 0 ? '今天' : bookingDateIdx === 1 ? '明天' : dateStr,
           fullDate: targetDate.toISOString().split('T')[0],
           time: bookingTime!,
@@ -257,9 +329,26 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
       const newSessions = [newSession, ...userSessions];
       setUserSessions(newSessions);
       localStorage.setItem('vr_user_sessions', JSON.stringify(newSessions));
-      window.dispatchEvent(new Event('storage_update'));
 
-      // 3. Close Flow & Show Success Page
+      // 3. Create Global Booking (Sync with Staff)
+      const newGlobalBooking: GlobalBooking = {
+          id: sessionId,
+          time: bookingTime!,
+          dateStr: newSession.dateStr,
+          guests: bookingGuests,
+          checkInCount: 0,
+          status: 'BOOKED',
+          store: homeStore,
+          userName: '微信用户'
+      };
+      const updatedGlobal = [newGlobalBooking, ...globalBookings];
+      setGlobalBookings(updatedGlobal);
+      localStorage.setItem('vr_global_bookings', JSON.stringify(updatedGlobal));
+
+      window.dispatchEvent(new Event('storage_update'));
+      window.dispatchEvent(new Event('new_booking_created'));
+
+      // 4. Close Flow & Show Success Page
       setShowBookingFlow(false);
       setViewingSession(newSession);
   };
@@ -286,7 +375,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
   const GuestHome = () => {
     // Find nearest upcoming session
     const upcomingSession = userSessions
-        .filter(s => !isSessionStarted(s))
+        .filter(s => !isSessionStarted(s) && s.status !== 'CANCELLED')
         .sort((a, b) => {
              const da = a.dateStr === '今天' ? 0 : a.dateStr === '明天' ? 1 : 2;
              const db = b.dateStr === '今天' ? 0 : b.dateStr === '明天' ? 1 : 2;
@@ -347,7 +436,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                 <div className="absolute top-0 right-0 p-3 opacity-10"><QrCode size={100} className="text-white"/></div>
                 <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">即将开始</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse ${upcomingSession.status === 'CHECKED_IN' ? 'bg-blue-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                            {upcomingSession.status === 'CHECKED_IN' ? '已签到' : '即将开始'}
+                        </span>
                         <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Upcoming Session</span>
                     </div>
                     <div className="flex items-end gap-3 mb-2">
@@ -546,14 +637,15 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                         ) : (
                             userSessions.map(session => {
                                 const isStarted = isSessionStarted(session);
+                                const isCheckedIn = session.status === 'CHECKED_IN';
                                 return (
                                 <div key={session.id} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                                    <div className={`p-4 ${isStarted ? 'bg-gray-50' : 'bg-white'}`}>
+                                    <div className={`p-4 ${isStarted || isCheckedIn ? 'bg-gray-50' : 'bg-white'}`}>
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isStarted ? 'bg-gray-200 text-gray-500' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                        {isStarted ? '已结束/进行中' : '待参加'}
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isCheckedIn ? 'bg-blue-100 text-blue-600' : isStarted ? 'bg-gray-200 text-gray-500' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                        {isCheckedIn ? '已签到' : isStarted ? '已结束/进行中' : '待参加'}
                                                     </span>
                                                     <span className="text-xs font-bold text-gray-800">{session.dateStr} {session.time}</span>
                                                 </div>
@@ -563,14 +655,26 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-sm font-black text-gray-800">{session.guests}人</div>
-                                                <div className="text-[10px] text-gray-400">¥{session.totalPrice}</div>
+                                                <div className="text-xs font-bold text-blue-600 mt-1">
+                                                    {globalBookings.find(b => b.id === session.id)?.status === 'CHECKED_IN' ? '已签到' : globalBookings.find(b => b.id === session.id)?.status === 'TRANSFERRED' ? '已入场' : '未签到'}
+                                                </div>
                                             </div>
                                         </div>
                                         
                                         <div className="border-t border-dashed border-gray-200 my-3"></div>
                                         
-                                        <div className="flex justify-between items-center">
-                                            <div className="text-[10px] text-gray-400">订单号: {session.id}</div>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <div className="text-[10px] text-gray-400 flex-1">订单号: {session.id}</div>
+                                            
+                                            {!isCheckedIn && !isStarted && (
+                                                <button 
+                                                    onClick={() => handleGuestCheckIn(session)}
+                                                    className="bg-blue-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shadow-blue-200"
+                                                >
+                                                    签到
+                                                </button>
+                                            )}
+
                                             <button 
                                                 onClick={() => setViewingSession(session)}
                                                 className="bg-white border border-gray-200 text-gray-600 text-[10px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm hover:border-purple-300 hover:text-purple-600"
@@ -837,29 +941,36 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
           {adminTab === 'TICKETS' && renderAdminTickets()}
           {adminTab === 'CONTROL' && (
             <div className="flex flex-col h-full bg-slate-50 p-4 overflow-y-auto space-y-3 no-scrollbar animate-in fade-in">
-              <div className="bg-purple-600 p-4 rounded-xl text-white flex justify-between items-center shadow-lg shadow-purple-200">
-                <div><div className="text-xs opacity-80">当前正在进行</div><div className="text-lg font-bold">LUMI魔法学院·02场</div></div>
-                <Activity size={24} className="animate-pulse" />
-              </div>
               <div className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">待转场场次</div>
-              {adminSessions.map(session => (
+              
+              {globalBookings.filter(b => b.status !== 'TRANSFERRED').length === 0 && (
+                  <div className="text-center py-10 opacity-30">
+                      <Clock size={32} className="mx-auto mb-2" />
+                      <div className="text-xs font-bold">暂无待处理场次</div>
+                  </div>
+              )}
+
+              {globalBookings.filter(b => b.status !== 'TRANSFERRED').map(session => (
                 <div key={session.id} className="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center font-bold text-gray-400">{session.id}</div>
-                    <div><div className="text-xs font-bold text-gray-700">{session.time} 场</div><div className="text-[10px] text-gray-400">{session.count}人已签到</div></div>
-                  </div>
-                  {session.status === 'TRANSFERRED' ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-[10px] font-bold border border-green-100">
-                      <CheckCircle size={12}/> 已转入
+                    <div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-[10px] text-white ${session.status === 'CHECKED_IN' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+                        {session.status === 'CHECKED_IN' ? '已签' : '预约'}
                     </div>
-                  ) : (
-                    <button 
-                      onClick={() => handleTransferToBackstage(session)}
-                      className="bg-purple-100 text-purple-700 text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all"
-                    >
-                      <ArrowRightLeft size={12}/> 转入后厅
-                    </button>
-                  )}
+                    <div>
+                        <div className="text-xs font-bold text-gray-700">{session.time} 场</div>
+                        <div className="text-[10px] text-gray-400">
+                            {session.dateStr} · {session.checkInCount}/{session.guests}人
+                        </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleTransferToBackstage(session)}
+                        className="text-[10px] px-3 py-1.5 rounded font-bold flex items-center gap-1 active:scale-95 transition-all bg-purple-100 text-purple-700"
+                      >
+                        <ArrowRightLeft size={12}/> 转入后厅
+                      </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1008,6 +1119,36 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
         </div>
       )}
       
+      {showTransferConfirmModal && sessionToTransfer && (
+        <div className="absolute inset-0 z-[250] flex items-center justify-center p-6 animate-in fade-in">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowTransferConfirmModal(false)}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10">
+               <div className="flex flex-col items-center text-center mb-6">
+                   <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-4 border-4 border-orange-100">
+                       <AlertCircle size={32} />
+                   </div>
+                   <h3 className="font-bold text-lg text-slate-800 mb-2 px-4">
+                       当前场次尚未签到，是否确认转入后厅？
+                   </h3>
+               </div>
+               <div className="flex gap-3">
+                   <button 
+                       onClick={() => { setShowTransferConfirmModal(false); setSessionToTransfer(null); }}
+                       className="flex-1 py-3.5 rounded-xl bg-slate-100 font-bold text-slate-600 text-sm hover:bg-slate-200 transition-colors"
+                   >
+                       取消
+                   </button>
+                   <button 
+                       onClick={() => executeTransfer(sessionToTransfer)}
+                       className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 font-bold text-white text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all"
+                   >
+                       确定
+                   </button>
+               </div>
+           </div>
+        </div>
+      )}
+
       {/* REDEEM FLOW MODAL */}
       {showRedeemFlow && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in bg-black/80 backdrop-blur-sm">
