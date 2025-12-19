@@ -1017,6 +1017,37 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
             </button>
           ))}
         </div>
+
+        {showTransferConfirmModal && sessionToTransfer && (
+        <div className="absolute inset-0 z-[250] flex items-center justify-center p-6 animate-in fade-in">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowTransferConfirmModal(false)}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10">
+               <div className="flex flex-col items-center text-center mb-6">
+                   <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-4 border-4 border-orange-100">
+                       <AlertCircle size={32} />
+                   </div>
+                   <h3 className="font-bold text-lg text-slate-800 mb-2 px-4">
+                       当前场次尚未签到，是否确认转入后厅？
+                   </h3>
+               </div>
+               <div className="flex gap-3">
+                   <button 
+                       onClick={() => { setShowTransferConfirmModal(false); setSessionToTransfer(null); }}
+                       className="flex-1 py-3.5 rounded-xl bg-slate-100 font-bold text-slate-600 text-sm hover:bg-slate-200 transition-colors"
+                   >
+                       取消
+                   </button>
+                   <button 
+                       onClick={() => executeTransfer(sessionToTransfer)}
+                       className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 font-bold text-white text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all"
+                   >
+                       确定
+                   </button>
+               </div>
+           </div>
+        </div>
+      )}
+
       </div>
     );
   }
@@ -1116,36 +1147,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ userType, resetTrigge
               }} className="flex-1 bg-purple-600 text-white font-bold py-3 rounded-xl text-sm">确定</button>
             </div>
           </div>
-        </div>
-      )}
-      
-      {showTransferConfirmModal && sessionToTransfer && (
-        <div className="absolute inset-0 z-[250] flex items-center justify-center p-6 animate-in fade-in">
-           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowTransferConfirmModal(false)}></div>
-           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10">
-               <div className="flex flex-col items-center text-center mb-6">
-                   <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-4 border-4 border-orange-100">
-                       <AlertCircle size={32} />
-                   </div>
-                   <h3 className="font-bold text-lg text-slate-800 mb-2 px-4">
-                       当前场次尚未签到，是否确认转入后厅？
-                   </h3>
-               </div>
-               <div className="flex gap-3">
-                   <button 
-                       onClick={() => { setShowTransferConfirmModal(false); setSessionToTransfer(null); }}
-                       className="flex-1 py-3.5 rounded-xl bg-slate-100 font-bold text-slate-600 text-sm hover:bg-slate-200 transition-colors"
-                   >
-                       取消
-                   </button>
-                   <button 
-                       onClick={() => executeTransfer(sessionToTransfer)}
-                       className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 font-bold text-white text-sm shadow-lg shadow-purple-200 active:scale-95 transition-all"
-                   >
-                       确定
-                   </button>
-               </div>
-           </div>
         </div>
       )}
 
