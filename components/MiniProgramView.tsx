@@ -695,7 +695,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                <img src={selectedProduct.image} className="w-16 h-16 rounded-lg object-cover bg-white" />
                <div><div className="text-sm font-bold text-gray-800">{selectedProduct.name}</div><div className="text-[10px] text-gray-400">单价: {confirmMethod === 'PURCHASE' ? `¥${selectedProduct.price}` : `${selectedProduct.points} pts`}</div><div className="text-[10px] text-emerald-600 font-bold mt-1">当前库存: {selectedProduct.stock || 0}</div></div>
             </div>
-            <div className="flex items-center justify-between mb-8 px-1">
+            <div className="flex items-center justify-between mb-4 px-1">
               <span className="text-sm font-bold text-gray-600">选择数量</span>
               <div className="flex items-center gap-4">
                 <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 rounded-full flex items-center justify-center border ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
@@ -703,6 +703,28 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 <button onClick={() => setConfirmQuantity(Math.min(selectedProduct.stock || 0, confirmQuantity + 1))} className={`w-8 h-8 rounded-full flex items-center justify-center border ${confirmQuantity >= (selectedProduct.stock || 0) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
               </div>
             </div>
+
+            {/* Total Points Display */}
+            {confirmMethod === 'POINTS' && (
+                <div className="flex justify-end items-center gap-2 mb-8 px-1">
+                    <span className="text-xs font-bold text-gray-500">所需总积分</span>
+                    <span className={`text-lg font-black ${userPoints < (selectedProduct.points * confirmQuantity) ? 'text-red-500' : 'text-purple-600'}`}>
+                        {selectedProduct.points * confirmQuantity}
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-400">pts</span>
+                </div>
+            )}
+            
+            {/* Total Price Display for consistency */}
+            {confirmMethod === 'PURCHASE' && (
+                 <div className="flex justify-end items-center gap-2 mb-8 px-1">
+                    <span className="text-xs font-bold text-gray-500">所需总金额</span>
+                    <span className="text-lg font-black text-gray-800">
+                        ¥{selectedProduct.price * confirmQuantity}
+                    </span>
+                </div>
+            )}
+            
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">取消</button>
               <button 
@@ -733,7 +755,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 localStorage.setItem('vr_user_merch', JSON.stringify([...newTickets, ...existing]));
                 window.dispatchEvent(new Event('storage_update'));
                 setShowConfirmModal(false);
-              }} className={`flex-1 font-bold py-3 rounded-xl text-sm ${confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-600 text-white'}`}>确定</button>
+              }} className={`flex-1 font-bold py-3 rounded-xl text-sm ${confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-600 text-white'}`}>
+                  {confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? '积分不足' : '确定'}
+              </button>
             </div>
           </div>
         </div>
