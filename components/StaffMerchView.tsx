@@ -110,20 +110,20 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
         </div>
 
         {/* Store Filter */}
-        <div className="mx-4 mb-2 flex justify-end animate-in fade-in slide-in-from-top-1">
-             <div className="relative shadow-sm">
-                 <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 z-10">
-                    <Store size={12} />
+        <div className="mx-4 mb-3 animate-in fade-in slide-in-from-top-1">
+             <div className="relative">
+                 <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 z-10">
+                    <Store size={14} />
                  </div>
                  <select 
                     value={selectedStore} 
                     onChange={(e) => setSelectedStore(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 text-gray-600 text-[10px] font-bold py-1.5 pl-8 pr-8 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200 cursor-pointer hover:border-purple-300 transition-all"
+                    className="w-full appearance-none bg-white border border-purple-100 text-slate-700 text-xs font-bold py-3 pl-10 pr-10 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-50/50 shadow-sm cursor-pointer hover:border-purple-300 transition-all"
                  >
                     {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                  </select>
-                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <ChevronDown size={12} />
+                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-purple-300">
+                    <ChevronDown size={16} />
                  </div>
             </div>
         </div>
