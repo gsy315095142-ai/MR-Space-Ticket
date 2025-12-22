@@ -7,9 +7,9 @@ interface StaffFrontStoreViewProps {
 }
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true },
 ];
 
 const StaffFrontStoreView: React.FC<StaffFrontStoreViewProps> = ({ initialAdminTab }) => {
@@ -156,6 +156,19 @@ const StaffFrontStoreView: React.FC<StaffFrontStoreViewProps> = ({ initialAdminT
         setSessionToTransfer(booking);
         setShowTransferConfirmModal(true);
     }
+  };
+
+  const toggleProductShelf = (product: MerchItem) => {
+    const updatedProducts = products.map(p => {
+        if (p.id === product.id) {
+            return { ...p, isOnShelf: p.isOnShelf === false ? true : false };
+        }
+        return p;
+    });
+    setProducts(updatedProducts);
+    localStorage.setItem('vr_global_products', JSON.stringify(updatedProducts));
+    window.dispatchEvent(new Event('storage_update'));
+    showToast(product.isOnShelf === false ? '商品已上架' : '商品已下架');
   };
 
   // --- RENDERERS ---
@@ -322,12 +335,26 @@ const StaffFrontStoreView: React.FC<StaffFrontStoreViewProps> = ({ initialAdminT
                      <div className="text-sm font-bold">{p.name}</div>
                      <div className="text-[10px] text-gray-400">¥{p.price} / {p.points}pts / 库存:{p.stock || 0}</div>
                    </div>
-                   <button onClick={() => setEditingProduct(p)} className="text-purple-600 text-xs font-bold flex items-center gap-1 bg-purple-50 px-2 py-1.5 rounded">
-                     <Edit size={14} /> 编辑
-                   </button>
+                   <div className="flex flex-col gap-2 items-end">
+                      <button onClick={() => setEditingProduct(p)} className="text-purple-600 text-xs font-bold flex items-center gap-1 bg-purple-50 px-2 py-1.5 rounded">
+                        <Edit size={14} /> 编辑
+                      </button>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold ${p.isOnShelf !== false ? 'text-green-600' : 'text-gray-400'}`}>
+                           {p.isOnShelf !== false ? '上架中' : '已下架'}
+                        </span>
+                        <button 
+                            onClick={() => toggleProductShelf(p)}
+                            className={`w-8 h-4 rounded-full relative transition-colors duration-200 ${p.isOnShelf !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                        >
+                            <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all duration-200 ${p.isOnShelf !== false ? 'translate-x-[18px]' : 'translate-x-[2px]'}`}></div>
+                        </button>
+                      </div>
+                   </div>
                 </div>
               ))}
-              <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0 })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 上架新商品</button>
+              <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 上架新商品</button>
            </div>
         )}
         {merchAdminSubTab === 'SALES' && (
@@ -506,6 +533,124 @@ const StaffFrontStoreView: React.FC<StaffFrontStoreViewProps> = ({ initialAdminT
                        确定
                    </button>
                </div>
+           </div>
+        </div>
+      )}
+
+      {/* EDIT PRODUCT MODAL */}
+      {editingProduct && (
+        <div className="absolute inset-0 z-[260] flex items-center justify-center p-6 animate-in fade-in">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10 flex flex-col max-h-[90%]">
+               <div className="flex justify-between items-center mb-4">
+                   <h3 className="font-bold text-lg text-slate-800">{editingProduct.id.startsWith('p') ? '编辑商品' : '上架商品'}</h3>
+                   <button onClick={() => setEditingProduct(null)} className="p-1 rounded-full hover:bg-gray-100"><X size={20} className="text-gray-400"/></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar pb-4">
+                   {/* Image Upload */}
+                   <div className="flex flex-col items-center gap-3">
+                       <div className="w-24 h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group cursor-pointer">
+                           {editingProduct.image ? (
+                               <img src={editingProduct.image} className="w-full h-full object-cover" />
+                           ) : (
+                               <ImageIcon className="text-gray-300" />
+                           )}
+                           <input 
+                               type="file" 
+                               accept="image/*" 
+                               className="absolute inset-0 opacity-0 cursor-pointer"
+                               onChange={(e) => {
+                                   const file = e.target.files?.[0];
+                                   if(file) {
+                                       const reader = new FileReader();
+                                       reader.onloadend = () => {
+                                           setEditingProduct({...editingProduct, image: reader.result as string});
+                                       }
+                                       reader.readAsDataURL(file);
+                                   }
+                               }} 
+                           />
+                           <div className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity font-bold">更换图片</div>
+                       </div>
+                       <span className="text-[10px] text-gray-400">点击图片上传</span>
+                   </div>
+
+                   {/* Name */}
+                   <div>
+                       <label className="text-xs font-bold text-gray-500 mb-1 block">商品名称</label>
+                       <input 
+                           type="text" 
+                           value={editingProduct.name} 
+                           onChange={e => setEditingProduct({...editingProduct, name: e.target.value})}
+                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-purple-500"
+                           placeholder="请输入商品名称"
+                       />
+                   </div>
+
+                   {/* Price & Points Row */}
+                   <div className="flex gap-3">
+                       <div className="flex-1">
+                           <label className="text-xs font-bold text-gray-500 mb-1 block">售价 (¥)</label>
+                           <input 
+                               type="number" 
+                               value={editingProduct.price} 
+                               onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})}
+                               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-purple-500"
+                               placeholder="0.00"
+                           />
+                       </div>
+                       <div className="flex-1">
+                           <label className="text-xs font-bold text-gray-500 mb-1 block">兑换积分</label>
+                           <input 
+                               type="number" 
+                               value={editingProduct.points} 
+                               onChange={e => setEditingProduct({...editingProduct, points: Number(e.target.value)})}
+                               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-purple-500"
+                               placeholder="0"
+                           />
+                       </div>
+                   </div>
+
+                   {/* Stock */}
+                    <div>
+                       <label className="text-xs font-bold text-gray-500 mb-1 block">库存数量</label>
+                       <input 
+                           type="number" 
+                           value={editingProduct.stock || 0} 
+                           onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})}
+                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-purple-500"
+                           placeholder="0"
+                       />
+                   </div>
+               </div>
+
+               <button 
+                   onClick={() => {
+                       // Save Logic
+                       if (!editingProduct.name) {
+                           alert('请输入商品名称');
+                           return;
+                       }
+                       let updatedProducts = [...products];
+                       // Check if ID exists in original products list (meaning it's an edit)
+                       const index = updatedProducts.findIndex(p => p.id === editingProduct.id);
+                       if (index > -1) {
+                           updatedProducts[index] = editingProduct;
+                       } else {
+                           // For new products, ensure ID is unique (it was set on creation but just to be safe)
+                           updatedProducts.push(editingProduct); 
+                       }
+                       setProducts(updatedProducts);
+                       localStorage.setItem('vr_global_products', JSON.stringify(updatedProducts));
+                       window.dispatchEvent(new Event('storage_update'));
+                       setEditingProduct(null);
+                       showToast('商品信息已更新');
+                   }}
+                   className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-200 active:scale-95 transition-all mt-2"
+               >
+                   保存更改
+               </button>
            </div>
         </div>
       )}

@@ -8,9 +8,9 @@ interface MiniProgramViewProps {
 }
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50 },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20 },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15 },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1635273051937-20083c27da1d?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true },
 ];
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
@@ -655,7 +655,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
             </div>
 
             {/* Products List */}
-            {products.map(product => (
+            {products.filter(p => p.isOnShelf !== false).map(product => (
               <div key={product.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-4">
                 <div className="relative shrink-0 w-24 h-24">
                   <img src={product.image} className="w-full h-full rounded-lg object-cover bg-gray-100" />

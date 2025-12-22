@@ -19,7 +19,8 @@ export interface MerchItem {
   image: string;
   points: number;
   price: number;
-  stock?: number; // Added stock property
+  stock?: number; 
+  isOnShelf?: boolean; // Added property for shelf status
 }
 
 export interface UserMerchTicket {
