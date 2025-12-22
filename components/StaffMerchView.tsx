@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface StaffMerchViewProps {
@@ -58,6 +58,13 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
   const [offlineSales, setOfflineSales] = useState<any[]>([]);
   const [merchAdminSubTab, setMerchAdminSubTab] = useState<'MANAGE' | 'SALES' | 'STATS'>('SALES');
   const [editingProduct, setEditingProduct] = useState<MerchItem | null>(null);
+  const [selectedStore, setSelectedStore] = useState('ALL');
+
+  const STORES = [
+      { id: 'ALL', name: '全部门店' },
+      { id: 'BJ', name: '北京·ClubMedJoyview延庆度假村' },
+      { id: 'SH', name: '上海·LUMI魔法学院旗舰店' }
+  ];
 
   const loadData = () => {
     const storedMerch = localStorage.getItem('vr_user_merch');
@@ -101,6 +108,26 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
           <button onClick={() => setMerchAdminSubTab('SALES')} className={`flex-1 py-2 text-xs font-bold rounded-md ${merchAdminSubTab === 'SALES' ? 'bg-purple-100 text-purple-700' : 'text-gray-500'}`}>订单处理</button>
           <button onClick={() => setMerchAdminSubTab('STATS')} className={`flex-1 py-2 text-xs font-bold rounded-md ${merchAdminSubTab === 'STATS' ? 'bg-purple-100 text-purple-700' : 'text-gray-500'}`}>统计看板</button>
         </div>
+
+        {/* Store Filter */}
+        <div className="mx-4 mb-2 flex justify-end animate-in fade-in slide-in-from-top-1">
+             <div className="relative shadow-sm">
+                 <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 z-10">
+                    <Store size={12} />
+                 </div>
+                 <select 
+                    value={selectedStore} 
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="appearance-none bg-white border border-gray-200 text-gray-600 text-[10px] font-bold py-1.5 pl-8 pr-8 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200 cursor-pointer hover:border-purple-300 transition-all"
+                 >
+                    {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                 </select>
+                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                    <ChevronDown size={12} />
+                 </div>
+            </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar">
           {merchAdminSubTab === 'MANAGE' && (
              <div className="space-y-3">
@@ -130,7 +157,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                      </div>
                   </div>
                 ))}
-                <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 上架新商品</button>
+                <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 同步商品信息</button>
              </div>
           )}
           {merchAdminSubTab === 'SALES' && (
