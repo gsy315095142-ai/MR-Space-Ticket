@@ -664,15 +664,20 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{product.name}</h4>
-                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                      <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded">{product.points} 分</span>
-                      <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded">¥{product.price}</span>
-                      <span className={`text-[9px] flex items-center gap-1 px-1.5 py-0.5 rounded font-bold ${product.stock && product.stock > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}><Box size={10} /> {product.stock || 0}</span>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                       {/* Stock Display - More intuitive text */}
+                      <span className={`text-[10px] flex items-center gap-1 px-2 py-0.5 rounded font-bold ${product.stock && product.stock > 0 ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-600'}`}>
+                         {product.stock && product.stock > 0 ? `剩余库存: ${product.stock}` : '暂时缺货'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg border transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-white text-purple-600 border-purple-200 active:bg-purple-50'}`}>积分兑换</button>
-                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-100 text-gray-400' : 'bg-purple-600 text-white active:bg-purple-700'}`}>付费购买</button>
+                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg border transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-white text-purple-600 border-purple-200 active:bg-purple-50'}`}>
+                        {product.points}积分 兑换
+                    </button>
+                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-100 text-gray-400' : 'bg-purple-600 text-white active:bg-purple-700'}`}>
+                        ¥{product.price} 购买
+                    </button>
                   </div>
                 </div>
               </div>
