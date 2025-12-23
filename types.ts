@@ -21,15 +21,18 @@ export interface MerchItem {
   price: number;
   stock?: number; 
   isOnShelf?: boolean; // Added property for shelf status
+  category?: string;
 }
 
 export interface UserMerchTicket {
   id: string;
   productId: string;
   productName: string;
+  productImage?: string;
   status: 'PENDING' | 'REDEEMED' | 'SOLD_OFFLINE';
   redeemMethod: 'PURCHASE' | 'POINTS' | 'OFFLINE';
   timestamp: string;
+  quantity?: number;
 }
 
 export interface GlobalBooking {

@@ -8,9 +8,9 @@ interface MiniProgramViewProps {
 }
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1590543789988-66236b2f689e?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1590543789988-66236b2f689e?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true, category: '礼品' },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true, category: '礼品' },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true, category: '服饰' },
 ];
 
 const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
@@ -33,6 +33,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   const [showMineRedDot, setShowMineRedDot] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [showTicketQRCode, setShowTicketQRCode] = useState<UserMerchTicket | null>(null);
+  const [storeCategory, setStoreCategory] = useState('全部');
 
   // Guest Data
   const [myTickets, setMyTickets] = useState<MyTicket[]>([]);
@@ -567,7 +568,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                      userMerchTickets.map(ticket => (
                         <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                             <div className="flex justify-between items-start mb-2">
-                                <span className="font-bold text-gray-800 text-sm">{ticket.productName}</span>
+                                <span className="font-bold text-gray-800 text-sm">
+                                  {ticket.productName} 
+                                  {(ticket.quantity || 1) > 1 && <span className="text-xs text-purple-600 ml-1">x{ticket.quantity}</span>}
+                                </span>
                                 <span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
                             </div>
                             <div className="text-[10px] text-gray-400">券码: {ticket.id}</div>
@@ -661,10 +665,26 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                    <div className="text-[10px] font-bold">游玩魔法学院赚积分 {'>'}</div>
                 </button>
             </div>
+            
+            {/* Category Filter */}
+            <div className="flex items-center gap-2 mb-4 mx-1 overflow-x-auto no-scrollbar">
+               {['全部', '服饰', '抱枕', '礼品'].map(cat => (
+                   <button 
+                     key={cat}
+                     onClick={() => setStoreCategory(cat)}
+                     className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${storeCategory === cat ? 'bg-black text-white' : 'bg-white text-gray-500'}`}
+                   >
+                       {cat}
+                   </button>
+               ))}
+            </div>
 
             {/* Grid Layout - Poizon Style */}
             <div className="grid grid-cols-2 gap-3 mx-1">
-            {products.filter(p => p.isOnShelf !== false).map(product => (
+            {products
+              .filter(p => p.isOnShelf !== false)
+              .filter(p => storeCategory === '全部' || p.category === storeCategory)
+              .map(product => (
               <div key={product.id} className="bg-white rounded-lg overflow-hidden flex flex-col">
                 <div className="relative aspect-square bg-gray-50">
                   <img src={product.image} className="w-full h-full object-cover" />
@@ -766,26 +786,40 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                   if (confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)) { return; }
                   const method = confirmMethod;
                   const qty = confirmQuantity;
-                  const newTickets: UserMerchTicket[] = Array.from({ length: qty }).map(() => ({
-                  id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                  productId: selectedProduct.id, productName: selectedProduct.name,
-                  status: 'PENDING', redeemMethod: method, timestamp: new Date().toLocaleString()
-                }));
+                  
+                  // Create ONE ticket with quantity
+                  const newTicket: UserMerchTicket = {
+                    id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                    productId: selectedProduct.id, 
+                    productName: selectedProduct.name,
+                    productImage: selectedProduct.image,
+                    status: 'PENDING', 
+                    redeemMethod: method, 
+                    timestamp: new Date().toLocaleString(),
+                    quantity: qty
+                  };
+                  
                 if (method === 'POINTS') {
                     const newPoints = userPoints - (selectedProduct.points * qty);
                     setUserPoints(newPoints);
                     localStorage.setItem('vr_user_points', newPoints.toString());
                     showToast('兑换成功，请在【我的周边】查看核销码');
                 } else {
-                    alert(`成功购买 ${qty} 份商品`);
+                    // Purchase simulation success
+                    showToast(`成功购买 ${qty} 份商品`);
                 }
                 const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
                 saveProducts(updatedProducts);
+                
                 const storedMerch = localStorage.getItem('vr_user_merch');
                 const existing = storedMerch ? JSON.parse(storedMerch) : [];
-                localStorage.setItem('vr_user_merch', JSON.stringify([...newTickets, ...existing]));
+                localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
                 window.dispatchEvent(new Event('storage_update'));
+                
+                // Immediately show modal
                 setShowConfirmModal(false);
+                setShowTicketQRCode(newTicket);
+
               }} className={`flex-1 font-bold py-3 rounded-xl text-sm ${confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-600 text-white'}`}>
                   {confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? '积分不足' : '确定'}
               </button>
@@ -1100,14 +1134,31 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                    <X size={20} />
                 </button>
                 <div className="text-sm font-bold text-gray-500 mb-1">周边核销码</div>
-                <h3 className="font-black text-lg text-slate-800 mb-6">{showTicketQRCode.productName}</h3>
                 
-                <div className="bg-slate-900 p-4 rounded-xl inline-block mb-4 shadow-lg">
+                {/* Product Info in Modal */}
+                {showTicketQRCode.productImage && (
+                    <div className="w-24 h-24 mx-auto mb-3 bg-gray-50 rounded-xl overflow-hidden shadow-sm">
+                        <img src={showTicketQRCode.productImage} className="w-full h-full object-cover" />
+                    </div>
+                )}
+                
+                <h3 className="font-black text-lg text-slate-800 mb-1 leading-tight">{showTicketQRCode.productName}</h3>
+                {(showTicketQRCode.quantity || 1) > 1 && (
+                     <div className="text-sm font-bold text-purple-600 mb-4 bg-purple-50 inline-block px-3 py-1 rounded-full">
+                        x {showTicketQRCode.quantity}
+                     </div>
+                )}
+                
+                <div className="bg-slate-900 p-4 rounded-xl inline-block mb-4 shadow-lg mx-auto mt-2">
                     <QrCode size={140} className="text-white" />
                 </div>
                 
                 <div className="text-xs text-gray-400 mb-2">请出示二维码给工作人员</div>
-                <div className="text-lg font-mono font-black text-slate-800 tracking-widest bg-gray-100 py-3 rounded-xl border border-gray-200">{showTicketQRCode.id}</div>
+                <div className="text-lg font-mono font-black text-slate-800 tracking-widest bg-gray-100 py-3 rounded-xl border border-gray-200 mb-4">{showTicketQRCode.id}</div>
+                
+                <div className="text-[10px] text-gray-400 bg-gray-50 p-2 rounded-lg border border-dashed border-gray-200">
+                    可在【我的周边】重新查看商品核销码
+                </div>
             </div>
         </div>
       )}

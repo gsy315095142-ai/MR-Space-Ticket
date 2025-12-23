@@ -7,9 +7,9 @@ interface StaffMerchViewProps {
 }
 
 const DEFAULT_PRODUCTS: MerchItem[] = [
-  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1590543789988-66236b2f689e?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true },
-  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true },
-  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true },
+  { id: 'p1', name: 'LUMI魔法师徽章', image: 'https://images.unsplash.com/photo-1590543789988-66236b2f689e?w=400&h=400&fit=crop', points: 100, price: 29, stock: 50, isOnShelf: true, category: '礼品' },
+  { id: 'p2', name: '定制版发光法杖', image: 'https://images.unsplash.com/photo-1551269901-5c5e14c25df7?w=600&h=800&fit=crop', points: 500, price: 128, stock: 20, isOnShelf: true, category: '礼品' },
+  { id: 'p3', name: '魔法学院主题斗篷', image: 'https://images.unsplash.com/photo-1517462964-21fdcec3f25b?w=600&h=800&fit=crop', points: 800, price: 299, stock: 15, isOnShelf: true, category: '服饰' },
 ];
 
 const resizeImage = (file: File): Promise<string> => {
@@ -137,6 +137,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                      <div className="flex-1">
                        <div className="text-sm font-bold">{p.name}</div>
                        <div className="text-[10px] text-gray-400">¥{p.price} / {p.points}pts / 库存:{p.stock || 0}</div>
+                       {p.category && <div className="text-[9px] text-purple-500 bg-purple-50 inline-block px-1.5 py-0.5 rounded mt-1">{p.category}</div>}
                      </div>
                      <div className="flex flex-col gap-2 items-end">
                         <button onClick={() => setEditingProduct(p)} className="text-purple-600 text-xs font-bold flex items-center gap-1 bg-purple-50 px-2 py-1.5 rounded">
@@ -157,7 +158,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                      </div>
                   </div>
                 ))}
-                <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 同步商品信息</button>
+                <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true, category: '礼品' })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 同步商品信息</button>
              </div>
           )}
           {merchAdminSubTab === 'SALES' && (
@@ -166,7 +167,13 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
               <div className="space-y-3">
                 {userMerchTickets.filter(t => t.status === 'PENDING').map(ticket => (
                   <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-1"><span className="font-bold text-gray-800 text-sm">{ticket.productName}</span><span className="text-[10px] px-2 py-0.5 rounded bg-orange-100 text-orange-600">待核销</span></div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-gray-800 text-sm">
+                        {ticket.productName}
+                        {(ticket.quantity || 1) > 1 && <span className="text-xs text-purple-600 ml-1">x{ticket.quantity}</span>}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-orange-100 text-orange-600">待核销</span>
+                    </div>
                     <div className="text-[10px] text-gray-400 mb-4">券码: {ticket.id}</div>
                     <button 
                       onClick={() => {
@@ -252,6 +259,21 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-purple-500"
                            placeholder="请输入商品名称"
                        />
+                   </div>
+
+                   <div>
+                       <label className="text-xs font-bold text-gray-500 mb-1 block">商品分类</label>
+                       <div className="flex gap-2">
+                           {['服饰', '抱枕', '礼品'].map(cat => (
+                               <button 
+                                   key={cat}
+                                   onClick={() => setEditingProduct({...editingProduct, category: cat})}
+                                   className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${editingProduct.category === cat ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200'}`}
+                               >
+                                   {cat}
+                               </button>
+                           ))}
+                       </div>
                    </div>
 
                    <div className="flex gap-3">
