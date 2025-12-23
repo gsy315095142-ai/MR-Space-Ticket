@@ -323,6 +323,12 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                           const isPending = ticket.status === 'PENDING';
                           const isRedeemed = ticket.status === 'REDEEMED';
                           const isRefunded = ticket.status === 'REFUNDED';
+                          const product = products.find(p => p.id === ticket.productId);
+                          const totalCost = product ? (
+                              ticket.redeemMethod === 'POINTS' 
+                                  ? `${product.points * (ticket.quantity || 1)} 积分` 
+                                  : `¥${product.price * (ticket.quantity || 1)}`
+                          ) : '';
 
                           return (
                           <div key={ticket.id} className={`bg-white p-3 rounded-xl shadow-sm border flex flex-col gap-3 ${isRefunded ? 'border-gray-100 opacity-60' : 'border-gray-100'}`}>
@@ -347,6 +353,11 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                                               {isPending ? '待核销' : isRedeemed ? '已核销' : '已撤销'}
                                           </span>
                                       </div>
+                                      {totalCost && (
+                                         <div className={`text-[10px] font-bold mb-1 ${ticket.redeemMethod === 'POINTS' ? 'text-purple-600' : 'text-slate-900'}`}>
+                                             {ticket.redeemMethod === 'POINTS' ? '消费' : '实付'}: {totalCost}
+                                         </div>
+                                      )}
                                       <div className="text-[10px] text-gray-400 font-mono mb-1">ID: {ticket.id}</div>
                                       <div className="text-[10px] text-gray-400 mb-1">{ticket.timestamp.split(' ')[0]} {ticket.timestamp.split(' ')[1]}</div>
                                       <div className="text-[9px] text-gray-400 truncate max-w-[150px] flex items-center gap-1">
@@ -359,6 +370,13 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                               {/* Actions */}
                               <div className="flex gap-2">
                                   {isPending && (
+                                      <>
+                                      <button 
+                                        onClick={() => setRefundTicket(ticket)}
+                                        className="w-20 bg-white border border-gray-200 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+                                      >
+                                        撤销
+                                      </button>
                                       <button 
                                         onClick={() => {
                                             const updated = userMerchTickets.map(t => t.id === ticket.id ? { ...t, status: 'REDEEMED' as const } : t);
@@ -371,6 +389,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                                       >
                                         <ScanLine size={14} /> 扫码核销
                                       </button>
+                                      </>
                                   )}
 
                                   {isRedeemed && (
