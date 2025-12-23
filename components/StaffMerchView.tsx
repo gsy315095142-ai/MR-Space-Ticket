@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown, Calendar, ScanLine, RotateCcw, Search, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
+import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown, Calendar, ScanLine, RotateCcw, Search, CheckCircle2, AlertCircle, Filter, Package, ShoppingBag, Receipt, CreditCard } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface StaffMerchViewProps {
@@ -57,6 +57,21 @@ const getYesterdayStr = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return d.toISOString().split('T')[0];
+};
+
+const getWeekRange = (offset = 0) => {
+    const now = new Date();
+    const dayOfWeek = now.getDay() || 7; // Sunday is 0, make it 7 for calculation
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() - dayOfWeek + 1 + (offset * 7));
+    
+    const currentSunday = new Date(currentMonday);
+    currentSunday.setDate(currentMonday.getDate() + 6);
+    
+    return {
+        start: currentMonday.toISOString().split('T')[0],
+        end: currentSunday.toISOString().split('T')[0]
+    };
 };
 
 const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
@@ -149,21 +164,29 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
 
   // Filter Logic for Stats Tab
   const getStatsData = () => {
-      const pendingCount = userMerchTickets.filter(t => 
-        t.status === 'PENDING' && 
+      const filterFn = (t: any) => 
         isInDateRange(t.timestamp, statsStartDate, statsEndDate) &&
-        (selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL'))
-      ).length;
+        (selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL'));
 
-      const offlineCount = offlineSales.filter(s => 
-        isInDateRange(s.timestamp, statsStartDate, statsEndDate) &&
-        (selectedStore === 'ALL' || s.store === selectedStore || (!s.store && selectedStore === 'ALL'))
-      ).length;
+      const filteredTickets = userMerchTickets.filter(filterFn);
+      const filteredOffline = offlineSales.filter(filterFn);
 
-      return { pendingCount, offlineCount };
+      const pendingTickets = filteredTickets.filter(t => t.status === 'PENDING');
+      const redeemedTickets = filteredTickets.filter(t => t.status === 'REDEEMED');
+      const refundedTickets = filteredTickets.filter(t => t.status === 'REFUNDED');
+
+      return {
+          pendingOrders: pendingTickets.length,
+          pendingItems: pendingTickets.reduce((sum, t) => sum + (t.quantity || 1), 0),
+          redeemedOrders: redeemedTickets.length,
+          redeemedItems: redeemedTickets.reduce((sum, t) => sum + (t.quantity || 1), 0),
+          refundedOrders: refundedTickets.length,
+          refundedItems: refundedTickets.reduce((sum, t) => sum + (t.quantity || 1), 0),
+          offlineItems: filteredOffline.length // Assuming offline sales are 1 item per entry
+      };
   };
 
-  const { pendingCount, offlineCount } = getStatsData();
+  const stats = getStatsData();
 
   const renderStoreFilter = () => (
     <div className="relative">
@@ -447,21 +470,113 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                                />
                            </div>
                        </div>
+                       
+                       {/* Date Shortcuts */}
+                       <div className="flex gap-2 pt-1">
+                          <button 
+                             onClick={() => { setStatsStartDate(getYesterdayStr()); setStatsEndDate(getYesterdayStr()); }}
+                             className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-colors"
+                          >
+                             昨日
+                          </button>
+                          <button 
+                             onClick={() => { setStatsStartDate(getTodayStr()); setStatsEndDate(getTodayStr()); }}
+                             className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-colors"
+                          >
+                             今日
+                          </button>
+                          <button 
+                             onClick={() => { 
+                                 const r = getWeekRange(-1);
+                                 setStatsStartDate(r.start); 
+                                 setStatsEndDate(r.end); 
+                             }}
+                             className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-colors"
+                          >
+                             上周
+                          </button>
+                          <button 
+                             onClick={() => { 
+                                 const r = getWeekRange(0);
+                                 setStatsStartDate(r.start); 
+                                 setStatsEndDate(r.end); 
+                             }}
+                             className="flex-1 bg-gray-50 border border-gray-200 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:border-purple-200 hover:text-purple-600 transition-colors"
+                          >
+                             本周
+                          </button>
+                       </div>
                    </div>
                </div>
 
-               <div className="grid grid-cols-2 gap-3">
-                   <div className="bg-white p-4 rounded-xl shadow-sm text-center border border-gray-100 flex flex-col justify-center h-32">
-                      <div className="text-3xl font-black text-purple-600 mb-1">{pendingCount}</div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">待核销券</div>
-                      <div className="text-[9px] text-gray-300 mt-2">所选时间段 & 门店</div>
+               {/* Detailed Stats Cards */}
+               <div className="space-y-3">
+                   {/* Pending Stats */}
+                   <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <div className="flex items-center gap-2 mb-3">
+                           <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg"><Receipt size={16} /></div>
+                           <span className="font-bold text-sm text-gray-800">待核销数据</span>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                           <div className="text-center p-2 bg-orange-50/50 rounded-lg">
+                               <div className="text-2xl font-black text-orange-600">{stats.pendingOrders}</div>
+                               <div className="text-[10px] text-gray-500 font-bold mt-1">订单数量</div>
+                           </div>
+                           <div className="text-center p-2 bg-orange-50/50 rounded-lg">
+                               <div className="text-2xl font-black text-orange-600">{stats.pendingItems}</div>
+                               <div className="text-[10px] text-gray-500 font-bold mt-1">商品件数</div>
+                           </div>
+                       </div>
                    </div>
-                   <div className="bg-white p-4 rounded-xl shadow-sm text-center border border-gray-100 flex flex-col justify-center h-32">
-                      <div className="text-3xl font-black text-blue-600 mb-1">{offlineCount}</div>
-                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">线下已售</div>
-                      <div className="text-[9px] text-gray-300 mt-2">所选时间段 & 门店</div>
+
+                   {/* Redeemed Stats */}
+                   <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <div className="flex items-center gap-2 mb-3">
+                           <div className="p-1.5 bg-green-100 text-green-600 rounded-lg"><CheckCircle2 size={16} /></div>
+                           <span className="font-bold text-sm text-gray-800">已核销数据</span>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                           <div className="text-center p-2 bg-green-50/50 rounded-lg">
+                               <div className="text-2xl font-black text-green-600">{stats.redeemedOrders}</div>
+                               <div className="text-[10px] text-gray-500 font-bold mt-1">订单数量</div>
+                           </div>
+                           <div className="text-center p-2 bg-green-50/50 rounded-lg">
+                               <div className="text-2xl font-black text-green-600">{stats.redeemedItems}</div>
+                               <div className="text-[10px] text-gray-500 font-bold mt-1">商品件数</div>
+                           </div>
+                       </div>
                    </div>
-                </div>
+
+                   {/* Refunded Stats */}
+                   <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <div className="flex items-center gap-2 mb-3">
+                           <div className="p-1.5 bg-gray-100 text-gray-600 rounded-lg"><RotateCcw size={16} /></div>
+                           <span className="font-bold text-sm text-gray-800">已撤销数据</span>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                           <div className="text-center p-2 bg-gray-50 rounded-lg">
+                               <div className="text-2xl font-black text-gray-600">{stats.refundedOrders}</div>
+                               <div className="text-[10px] text-gray-400 font-bold mt-1">订单数量</div>
+                           </div>
+                           <div className="text-center p-2 bg-gray-50 rounded-lg">
+                               <div className="text-2xl font-black text-gray-600">{stats.refundedItems}</div>
+                               <div className="text-[10px] text-gray-400 font-bold mt-1">商品件数</div>
+                           </div>
+                       </div>
+                   </div>
+
+                   {/* Offline Stats */}
+                   <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                       <div className="flex items-center gap-2 mb-3">
+                           <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg"><CreditCard size={16} /></div>
+                           <span className="font-bold text-sm text-gray-800">线下销售数据</span>
+                       </div>
+                       <div className="text-center p-2 bg-blue-50/50 rounded-lg">
+                           <div className="text-2xl font-black text-blue-600">{stats.offlineItems}</div>
+                           <div className="text-[10px] text-gray-500 font-bold mt-1">出售商品数量</div>
+                       </div>
+                   </div>
+               </div>
             </div>
           )}
         </div>
