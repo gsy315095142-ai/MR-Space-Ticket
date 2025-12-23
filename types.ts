@@ -29,10 +29,11 @@ export interface UserMerchTicket {
   productId: string;
   productName: string;
   productImage?: string;
-  status: 'PENDING' | 'REDEEMED' | 'SOLD_OFFLINE';
+  status: 'PENDING' | 'REDEEMED' | 'SOLD_OFFLINE' | 'REFUNDED';
   redeemMethod: 'PURCHASE' | 'POINTS' | 'OFFLINE';
   timestamp: string;
   quantity?: number;
+  store?: string;
 }
 
 export interface GlobalBooking {

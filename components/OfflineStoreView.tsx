@@ -41,7 +41,8 @@ const OfflineStoreView: React.FC = () => {
       productName: selectedProduct.name,
       price: selectedProduct.price,
       timestamp: new Date().toLocaleString(),
-      status: 'SOLD_OFFLINE'
+      status: 'SOLD_OFFLINE',
+      store: '北京·ClubMedJoyview延庆度假村' // Added store info for consistency
     };
 
     localStorage.setItem('vr_offline_sales', JSON.stringify([newSale, ...sales]));

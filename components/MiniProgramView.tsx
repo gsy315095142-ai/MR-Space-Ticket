@@ -798,7 +798,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                     status: 'PENDING', 
                     redeemMethod: 'PURCHASE', 
                     timestamp: new Date().toLocaleString(),
-                    quantity: qty
+                    quantity: qty,
+                    store: homeStore // Added store
                   };
                   
                   showToast(`成功购买 ${qty} 份商品`);
@@ -894,7 +895,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                             status: 'PENDING', 
                             redeemMethod: 'POINTS', 
                             timestamp: new Date().toLocaleString(),
-                            quantity: qty
+                            quantity: qty,
+                            store: homeStore // Added store
                         };
 
                         const newPoints = userPoints - (selectedProduct.points * qty);

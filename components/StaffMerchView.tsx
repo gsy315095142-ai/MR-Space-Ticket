@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown } from 'lucide-react';
+import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown, Calendar, ScanLine, RotateCcw, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface StaffMerchViewProps {
@@ -52,6 +52,13 @@ const resizeImage = (file: File): Promise<string> => {
     });
 };
 
+const getTodayStr = () => new Date().toISOString().split('T')[0];
+const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+};
+
 const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
   const [products, setProducts] = useState<MerchItem[]>(DEFAULT_PRODUCTS);
   const [userMerchTickets, setUserMerchTickets] = useState<UserMerchTicket[]>([]);
@@ -60,10 +67,19 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
   const [editingProduct, setEditingProduct] = useState<MerchItem | null>(null);
   const [selectedStore, setSelectedStore] = useState('ALL');
 
+  // Sales Tab State
+  const [salesStartDate, setSalesStartDate] = useState<string>(getTodayStr());
+  const [salesEndDate, setSalesEndDate] = useState<string>(getTodayStr());
+  const [refundTicket, setRefundTicket] = useState<UserMerchTicket | null>(null);
+
+  // Stats Tab State
+  const [statsStartDate, setStatsStartDate] = useState<string>(getTodayStr());
+  const [statsEndDate, setStatsEndDate] = useState<string>(getTodayStr());
+
   const STORES = [
       { id: 'ALL', name: '全部门店' },
-      { id: 'BJ', name: '北京·ClubMedJoyview延庆度假村' },
-      { id: 'SH', name: '上海·LUMI魔法学院旗舰店' }
+      { id: '北京·ClubMedJoyview延庆度假村', name: '北京·ClubMedJoyview延庆度假村' },
+      { id: '上海·LUMI魔法学院旗舰店', name: '上海·LUMI魔法学院旗舰店' }
   ];
 
   const loadData = () => {
@@ -100,6 +116,71 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
     onShowToast(product.isOnShelf === false ? '商品已上架' : '商品已下架');
   };
 
+  const handleRefundConfirm = () => {
+      if (!refundTicket) return;
+
+      const updated = userMerchTickets.map(t => 
+          t.id === refundTicket.id ? { ...t, status: 'REFUNDED' as const } : t
+      );
+      setUserMerchTickets(updated);
+      localStorage.setItem('vr_user_merch', JSON.stringify(updated));
+      window.dispatchEvent(new Event('storage_update'));
+      
+      onShowToast('订单已退款');
+      setRefundTicket(null);
+  };
+
+  const isInDateRange = (timestamp: string, start: string, end: string) => {
+      const date = new Date(timestamp);
+      const dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      return dateStr >= start && dateStr <= end;
+  };
+
+  // Filter Logic for Sales Tab
+  const filteredSalesTickets = userMerchTickets
+    .filter(t => {
+        const matchesDate = isInDateRange(t.timestamp, salesStartDate, salesEndDate);
+        const matchesStore = selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL'); 
+        return matchesDate && matchesStore;
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Filter Logic for Stats Tab
+  const getStatsData = () => {
+      const pendingCount = userMerchTickets.filter(t => 
+        t.status === 'PENDING' && 
+        isInDateRange(t.timestamp, statsStartDate, statsEndDate) &&
+        (selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL'))
+      ).length;
+
+      const offlineCount = offlineSales.filter(s => 
+        isInDateRange(s.timestamp, statsStartDate, statsEndDate) &&
+        (selectedStore === 'ALL' || s.store === selectedStore || (!s.store && selectedStore === 'ALL'))
+      ).length;
+
+      return { pendingCount, offlineCount };
+  };
+
+  const { pendingCount, offlineCount } = getStatsData();
+
+  const renderStoreFilter = () => (
+    <div className="relative">
+        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 z-10">
+            <Store size={14} />
+        </div>
+        <select 
+            value={selectedStore} 
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="w-full appearance-none bg-gray-50 border border-gray-200 text-slate-700 text-xs font-bold py-2.5 pl-9 pr-8 rounded-lg focus:outline-none focus:border-purple-400 cursor-pointer"
+        >
+            {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+            <ChevronDown size={14} />
+        </div>
+    </div>
+  );
+
   return (
     <>
       <div className="flex flex-col h-full bg-slate-50 animate-in fade-in">
@@ -109,28 +190,15 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
           <button onClick={() => setMerchAdminSubTab('STATS')} className={`flex-1 py-2 text-xs font-bold rounded-md ${merchAdminSubTab === 'STATS' ? 'bg-purple-100 text-purple-700' : 'text-gray-500'}`}>统计看板</button>
         </div>
 
-        {/* Store Filter */}
-        <div className="mx-4 mb-3 animate-in fade-in slide-in-from-top-1">
-             <div className="relative">
-                 <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 z-10">
-                    <Store size={14} />
-                 </div>
-                 <select 
-                    value={selectedStore} 
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full appearance-none bg-white border border-purple-100 text-slate-700 text-xs font-bold py-3 pl-10 pr-10 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-4 focus:ring-purple-50/50 shadow-sm cursor-pointer hover:border-purple-300 transition-all"
-                 >
-                    {STORES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                 </select>
-                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-purple-300">
-                    <ChevronDown size={16} />
-                 </div>
-            </div>
-        </div>
-
         <div className="flex-1 overflow-y-auto p-4 pb-20 no-scrollbar">
           {merchAdminSubTab === 'MANAGE' && (
              <div className="space-y-3">
+                {/* Store Filter for Manage */}
+                <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">当前管理门店</div>
+                    {renderStoreFilter()}
+                </div>
+
                 {products.map(p => (
                   <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 shadow-sm">
                      <img src={p.image} className="w-12 h-12 rounded object-cover shadow-sm bg-gray-50" />
@@ -161,53 +229,196 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                 <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true, category: '礼品' })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 同步商品信息</button>
              </div>
           )}
+          
           {merchAdminSubTab === 'SALES' && (
-            <div className="space-y-6">
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2 px-1"><Ticket size={12}/> 待处理核销</h4>
-              <div className="space-y-3">
-                {userMerchTickets.filter(t => t.status === 'PENDING').map(ticket => (
-                  <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-gray-800 text-sm">
-                        {ticket.productName}
-                        {(ticket.quantity || 1) > 1 && <span className="text-xs text-purple-600 ml-1">x{ticket.quantity}</span>}
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-orange-100 text-orange-600">待核销</span>
-                    </div>
-                    <div className="text-[10px] text-gray-400 mb-4">券码: {ticket.id}</div>
-                    <button 
-                      onClick={() => {
-                          const updated = userMerchTickets.map(t => t.id === ticket.id ? { ...t, status: 'REDEEMED' as const } : t);
-                          setUserMerchTickets(updated);
-                          localStorage.setItem('vr_user_merch', JSON.stringify(updated));
-                          window.dispatchEvent(new Event('storage_update'));
-                          alert('已核销成功！');
-                      }}
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-bold shadow-md shadow-blue-100 active:scale-[0.98] transition-all"
-                    >
-                      确认核销并交付
-                    </button>
-                  </div>
-                ))}
-                {userMerchTickets.filter(t => t.status === 'PENDING').length === 0 && <div className="text-center py-10 text-gray-300 text-xs">暂无待处理订单</div>}
-              </div>
+            <div className="space-y-4">
+               {/* Filters */}
+               <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                   {/* Store Filter */}
+                   {renderStoreFilter()}
+
+                   {/* Date Filter */}
+                   <div className="flex items-center gap-2">
+                       <div className="flex-1 bg-gray-50 rounded-lg p-2 flex items-center gap-2 border border-gray-200">
+                           <Calendar size={14} className="text-gray-400" />
+                           <input 
+                               type="date" 
+                               value={salesStartDate}
+                               onChange={(e) => setSalesStartDate(e.target.value)}
+                               className="bg-transparent text-xs font-bold w-full outline-none text-gray-600"
+                           />
+                       </div>
+                       <span className="text-gray-300">-</span>
+                       <div className="flex-1 bg-gray-50 rounded-lg p-2 flex items-center gap-2 border border-gray-200">
+                           <Calendar size={14} className="text-gray-400" />
+                           <input 
+                               type="date" 
+                               value={salesEndDate}
+                               onChange={(e) => setSalesEndDate(e.target.value)}
+                               className="bg-transparent text-xs font-bold w-full outline-none text-gray-600"
+                           />
+                       </div>
+                   </div>
+                   
+                   {/* Shortcuts */}
+                   <div className="flex gap-2">
+                       <button 
+                         onClick={() => { setSalesStartDate(getYesterdayStr()); setSalesEndDate(getYesterdayStr()); }}
+                         className="flex-1 bg-gray-50 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                       >
+                           昨日
+                       </button>
+                       <button 
+                         onClick={() => { setSalesStartDate(getTodayStr()); setSalesEndDate(getTodayStr()); }}
+                         className="flex-1 bg-gray-50 text-gray-500 text-[10px] font-bold py-1.5 rounded hover:bg-purple-50 hover:text-purple-600 transition-colors"
+                       >
+                           今日
+                       </button>
+                   </div>
+                   
+                   <div className="text-[10px] text-gray-400 text-right pt-1">
+                       共找到 {filteredSalesTickets.length} 条记录
+                   </div>
+               </div>
+
+               {/* Order List */}
+               <div className="space-y-3">
+                  {filteredSalesTickets.length === 0 ? (
+                      <div className="text-center py-10 text-gray-300 text-xs flex flex-col items-center">
+                          <Search size={32} className="mb-2 opacity-50"/>
+                          暂无符合条件的订单
+                      </div>
+                  ) : (
+                      filteredSalesTickets.map(ticket => {
+                          const isPending = ticket.status === 'PENDING';
+                          const isRedeemed = ticket.status === 'REDEEMED';
+                          const isRefunded = ticket.status === 'REFUNDED';
+
+                          return (
+                          <div key={ticket.id} className={`bg-white p-3 rounded-xl shadow-sm border flex flex-col gap-3 ${isRefunded ? 'border-gray-100 opacity-60' : 'border-gray-100'}`}>
+                              <div className="flex gap-3">
+                                  {/* Product Image */}
+                                  <div className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100">
+                                      {ticket.productImage ? (
+                                          <img src={ticket.productImage} className="w-full h-full object-cover" />
+                                      ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-gray-300"><ImageIcon size={20}/></div>
+                                      )}
+                                  </div>
+                                  
+                                  {/* Info */}
+                                  <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-start mb-1">
+                                          <div className="font-bold text-gray-800 text-sm truncate pr-2">
+                                              {ticket.productName}
+                                              {(ticket.quantity || 1) > 1 && <span className="ml-1 text-purple-600 text-xs">x{ticket.quantity}</span>}
+                                          </div>
+                                          <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${isPending ? 'bg-orange-100 text-orange-600' : isRedeemed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                              {isPending ? '待核销' : isRedeemed ? '已核销' : '已退款'}
+                                          </span>
+                                      </div>
+                                      <div className="text-[10px] text-gray-400 font-mono mb-1">ID: {ticket.id}</div>
+                                      <div className="text-[10px] text-gray-400 mb-1">{ticket.timestamp.split(' ')[0]} {ticket.timestamp.split(' ')[1]}</div>
+                                      <div className="text-[9px] text-gray-400 truncate max-w-[150px] flex items-center gap-1">
+                                          <Store size={10} />
+                                          {ticket.store || '未知门店'}
+                                      </div>
+                                  </div>
+                              </div>
+                              
+                              {/* Actions */}
+                              <div className="flex gap-2">
+                                  {isPending && (
+                                      <button 
+                                        onClick={() => {
+                                            const updated = userMerchTickets.map(t => t.id === ticket.id ? { ...t, status: 'REDEEMED' as const } : t);
+                                            setUserMerchTickets(updated);
+                                            localStorage.setItem('vr_user_merch', JSON.stringify(updated));
+                                            window.dispatchEvent(new Event('storage_update'));
+                                            onShowToast('扫码核销成功');
+                                        }}
+                                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold shadow-md shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+                                      >
+                                        <ScanLine size={14} /> 扫码核销
+                                      </button>
+                                  )}
+
+                                  {isRedeemed && (
+                                      <button 
+                                        onClick={() => setRefundTicket(ticket)}
+                                        className="flex-1 bg-white border border-gray-200 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+                                      >
+                                        <RotateCcw size={14} /> 退款
+                                      </button>
+                                  )}
+
+                                  {isRefunded && (
+                                      <div className="flex-1 bg-gray-50 text-gray-400 border border-gray-100 py-2 rounded-lg text-xs font-bold text-center">
+                                          已退款
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                          );
+                      })
+                  )}
+               </div>
             </div>
           )}
+
           {merchAdminSubTab === 'STATS' && (
-            <div className="grid grid-cols-2 gap-3">
-               <div className="bg-white p-4 rounded-xl shadow-sm text-center border">
-                  <div className="text-2xl font-bold text-purple-600">{userMerchTickets.filter(t => t.status === 'PENDING').length}</div>
-                  <div className="text-[10px] text-gray-400 font-bold uppercase">待核销券</div>
+            <div className="space-y-4">
+               {/* Filters */}
+               <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                   <div className="space-y-2">
+                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">统计门店</div>
+                       {renderStoreFilter()}
+                   </div>
+
+                   <div className="space-y-2">
+                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">统计时间段</div>
+                       <div className="flex items-center gap-2">
+                           <div className="flex-1 bg-gray-50 rounded-lg p-2 flex items-center gap-2 border border-gray-200">
+                               <Calendar size={14} className="text-gray-400" />
+                               <input 
+                                   type="date" 
+                                   value={statsStartDate}
+                                   onChange={(e) => setStatsStartDate(e.target.value)}
+                                   className="bg-transparent text-xs font-bold w-full outline-none text-gray-600"
+                               />
+                           </div>
+                           <span className="text-gray-300">-</span>
+                           <div className="flex-1 bg-gray-50 rounded-lg p-2 flex items-center gap-2 border border-gray-200">
+                               <Calendar size={14} className="text-gray-400" />
+                               <input 
+                                   type="date" 
+                                   value={statsEndDate}
+                                   onChange={(e) => setStatsEndDate(e.target.value)}
+                                   className="bg-transparent text-xs font-bold w-full outline-none text-gray-600"
+                               />
+                           </div>
+                       </div>
+                   </div>
                </div>
-               <div className="bg-white p-4 rounded-xl shadow-sm text-center border">
-                  <div className="text-2xl font-bold text-blue-600">{offlineSales.length}</div>
-                  <div className="text-[10px] text-gray-400 font-bold uppercase">线下已售</div>
-               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                   <div className="bg-white p-4 rounded-xl shadow-sm text-center border border-gray-100 flex flex-col justify-center h-32">
+                      <div className="text-3xl font-black text-purple-600 mb-1">{pendingCount}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">待核销券</div>
+                      <div className="text-[9px] text-gray-300 mt-2">所选时间段 & 门店</div>
+                   </div>
+                   <div className="bg-white p-4 rounded-xl shadow-sm text-center border border-gray-100 flex flex-col justify-center h-32">
+                      <div className="text-3xl font-black text-blue-600 mb-1">{offlineCount}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">线下已售</div>
+                      <div className="text-[9px] text-gray-300 mt-2">所选时间段 & 门店</div>
+                   </div>
+                </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Edit Product Modal */}
       {editingProduct && (
         <div className="absolute inset-0 z-[260] flex items-center justify-center p-6 animate-in fade-in">
            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)}></div>
@@ -340,6 +551,37 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                >
                    保存更改
                </button>
+           </div>
+        </div>
+      )}
+
+      {/* Refund Confirmation Modal */}
+      {refundTicket && (
+        <div className="absolute inset-0 z-[270] flex items-center justify-center p-6 animate-in fade-in">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setRefundTicket(null)}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10 text-center">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4 border-4 border-red-50/50">
+                    <RotateCcw size={32} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800 mb-2">确认退款</h3>
+                <p className="text-sm text-gray-500 mb-6 px-4">
+                    是否确认对订单 <span className="font-mono font-bold text-gray-800">{refundTicket.id}</span> 进行退款操作？
+                    <br/><span className="text-xs text-red-400 mt-1 block">此操作不可撤销</span>
+                </p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setRefundTicket(null)}
+                        className="flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 text-sm hover:bg-gray-200"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        onClick={handleRefundConfirm}
+                        className="flex-1 py-3 rounded-xl bg-red-600 font-bold text-white text-sm shadow-lg shadow-red-200 active:scale-95 transition-all"
+                    >
+                        确认退款
+                    </button>
+                </div>
            </div>
         </div>
       )}
