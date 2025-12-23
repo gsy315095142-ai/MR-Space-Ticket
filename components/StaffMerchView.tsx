@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown, Calendar, ScanLine, RotateCcw, Search, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Ticket, Edit, PlusCircle, X, Image as ImageIcon, Upload, Store, ChevronDown, Calendar, ScanLine, RotateCcw, Search, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
 import { MerchItem, UserMerchTicket } from '../types';
 
 interface StaffMerchViewProps {
@@ -71,6 +71,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
   const [salesStartDate, setSalesStartDate] = useState<string>(getTodayStr());
   const [salesEndDate, setSalesEndDate] = useState<string>(getTodayStr());
   const [refundTicket, setRefundTicket] = useState<UserMerchTicket | null>(null);
+  const [salesStatusFilter, setSalesStatusFilter] = useState<'ALL' | 'PENDING' | 'REDEEMED' | 'REFUNDED'>('ALL');
 
   // Stats Tab State
   const [statsStartDate, setStatsStartDate] = useState<string>(getTodayStr());
@@ -140,8 +141,9 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
   const filteredSalesTickets = userMerchTickets
     .filter(t => {
         const matchesDate = isInDateRange(t.timestamp, salesStartDate, salesEndDate);
-        const matchesStore = selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL'); 
-        return matchesDate && matchesStore;
+        const matchesStore = selectedStore === 'ALL' || t.store === selectedStore || (!t.store && selectedStore === 'ALL');
+        const matchesStatus = salesStatusFilter === 'ALL' || t.status === salesStatusFilter;
+        return matchesDate && matchesStore && matchesStatus;
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -199,12 +201,19 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                     {renderStoreFilter()}
                 </div>
 
-                {products.map(p => (
+                {products.map(p => {
+                  // Calculate pending redemptions for this product
+                  const pendingCount = userMerchTickets
+                    .filter(t => t.productId === p.id && t.status === 'PENDING')
+                    .reduce((acc, t) => acc + (t.quantity || 1), 0);
+
+                  return (
                   <div key={p.id} className="bg-white p-3 rounded-xl border border-gray-100 flex items-center gap-3 shadow-sm">
                      <img src={p.image} className="w-12 h-12 rounded object-cover shadow-sm bg-gray-50" />
                      <div className="flex-1">
                        <div className="text-sm font-bold">{p.name}</div>
                        <div className="text-[10px] text-gray-400">¥{p.price} / {p.points}pts / 库存:{p.stock || 0}</div>
+                       <div className="text-[10px] text-orange-500 font-bold mt-0.5">待核销: {pendingCount}</div>
                        {p.category && <div className="text-[9px] text-purple-500 bg-purple-50 inline-block px-1.5 py-0.5 rounded mt-1">{p.category}</div>}
                      </div>
                      <div className="flex flex-col gap-2 items-end">
@@ -225,7 +234,8 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                         </div>
                      </div>
                   </div>
-                ))}
+                  );
+                })}
                 <button onClick={() => setEditingProduct({ id: 'p' + Date.now(), name: '', image: '', points: 0, price: 0, stock: 0, isOnShelf: true, category: '礼品' })} className="w-full border-2 border-dashed border-gray-200 py-3 rounded-xl text-gray-400 text-xs font-bold flex items-center justify-center gap-2 hover:bg-white hover:border-purple-300 hover:text-purple-500 transition-all"><PlusCircle size={16} /> 同步商品信息</button>
              </div>
           )}
@@ -236,6 +246,26 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 space-y-3">
                    {/* Store Filter */}
                    {renderStoreFilter()}
+
+                   {/* Status Filter */}
+                   <div className="relative">
+                        <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 z-10">
+                            <Filter size={14} />
+                        </div>
+                        <select 
+                            value={salesStatusFilter} 
+                            onChange={(e) => setSalesStatusFilter(e.target.value as any)}
+                            className="w-full appearance-none bg-gray-50 border border-gray-200 text-slate-700 text-xs font-bold py-2.5 pl-9 pr-8 rounded-lg focus:outline-none focus:border-purple-400 cursor-pointer"
+                        >
+                            <option value="ALL">全部状态</option>
+                            <option value="PENDING">待核销</option>
+                            <option value="REDEEMED">已核销</option>
+                            <option value="REFUNDED">已撤销</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                            <ChevronDown size={14} />
+                        </div>
+                   </div>
 
                    {/* Date Filter */}
                    <div className="flex items-center gap-2">

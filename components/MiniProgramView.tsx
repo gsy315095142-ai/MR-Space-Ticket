@@ -25,8 +25,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   const [mineView, setMineView] = useState<'MENU' | 'TICKETS' | 'SESSIONS' | 'MERCH' | 'COUPONS'>('TICKETS');
   const [showIntro, setShowIntro] = useState(false);
   const [showStore, setShowStore] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showRedeemPage, setShowRedeemPage] = useState(false); // New state for Redeem Page
+  const [showPurchasePage, setShowPurchasePage] = useState(false); // Replaced showConfirmModal
+  const [showRedeemPage, setShowRedeemPage] = useState(false); 
   const [selectedProduct, setSelectedProduct] = useState<MerchItem | null>(null);
   const [confirmMethod, setConfirmMethod] = useState<'PURCHASE' | 'POINTS'>('PURCHASE');
   const [confirmQuantity, setConfirmQuantity] = useState(1);
@@ -150,6 +150,14 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
     setProducts(newProducts);
     localStorage.setItem('vr_global_products', JSON.stringify(newProducts));
     window.dispatchEvent(new Event('storage_update'));
+  };
+
+  // Helper to calculate remaining stock
+  const getRemainingStock = (product: MerchItem) => {
+      const pendingCount = userMerchTickets
+        .filter(t => t.productId === product.id && t.status === 'PENDING')
+        .reduce((acc, t) => acc + (t.quantity || 1), 0);
+      return Math.max(0, (product.stock || 0) - pendingCount);
   };
 
   // --- ACTIONS ---
@@ -759,7 +767,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
             {products
               .filter(p => p.isOnShelf !== false)
               .filter(p => storeCategory === '全部' || p.category === storeCategory)
-              .map(product => (
+              .map(product => {
+                  // Calculate displayed remaining quantity
+                  const displayRemaining = getRemainingStock(product);
+
+                  return (
               <div key={product.id} className="bg-white rounded-lg overflow-hidden flex flex-col">
                 <div className="relative aspect-square bg-gray-50">
                   <img src={product.image} className="w-full h-full object-cover" />
@@ -785,7 +797,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                       <div className="text-[9px] text-gray-400 mb-2">10万+人关注</div>
 
                       <div className="text-[9px] text-gray-400 mb-3 flex items-center">
-                          {product.stock && product.stock > 0 ? `库存: ${product.stock}` : '暂时缺货'}
+                          {product.stock && product.stock > 0 ? `剩余数量: ${displayRemaining}` : '暂时缺货'}
                       </div>
 
                       <div className="flex gap-2">
@@ -798,7 +810,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                         </button>
                         <button 
                             disabled={!product.stock || product.stock <= 0} 
-                            onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowConfirmModal(true); }} 
+                            onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowPurchasePage(true); }} 
                             className={`flex-1 text-[10px] font-bold py-2 rounded transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-100 text-gray-300' : 'bg-black text-white'}`}
                         >
                             购买
@@ -807,7 +819,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
             </div>
             
              <div className="text-center py-6 text-[10px] text-gray-300 font-mono tracking-widest uppercase">
@@ -848,138 +860,172 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
         </div>
       )}
 
-      {showConfirmModal && selectedProduct && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
-          <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-bold text-lg mb-4 text-center">购买确认</h3>
-            <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-xl">
-               <img src={selectedProduct.image} className="w-16 h-16 rounded-lg object-cover bg-white" />
-               <div><div className="text-sm font-bold text-gray-800">{selectedProduct.name}</div><div className="text-[10px] text-gray-400">单价: ¥{selectedProduct.price}</div><div className="text-[10px] text-emerald-600 font-bold mt-1">当前库存: {selectedProduct.stock || 0}</div></div>
-            </div>
-            <div className="flex items-center justify-between mb-4 px-1">
-              <span className="text-sm font-bold text-gray-600">选择数量</span>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 rounded-full flex items-center justify-center border ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
-                <span className="font-bold w-4 text-center">{confirmQuantity}</span>
-                <button onClick={() => setConfirmQuantity(Math.min(selectedProduct.stock || 0, confirmQuantity + 1))} className={`w-8 h-8 rounded-full flex items-center justify-center border ${confirmQuantity >= (selectedProduct.stock || 0) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
-              </div>
-            </div>
-
-            <div className="flex justify-end items-center gap-2 mb-8 px-1">
-                <span className="text-xs font-bold text-gray-500">所需总金额</span>
-                <span className="text-lg font-black text-gray-800">
-                    ¥{selectedProduct.price * confirmQuantity}
-                </span>
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">取消</button>
-              <button 
-                onClick={() => {
-                  if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
-                  const qty = confirmQuantity;
-                  
-                  // Create ONE ticket with quantity
-                  const newTicket: UserMerchTicket = {
-                    id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                    productId: selectedProduct.id, 
-                    productName: selectedProduct.name,
-                    productImage: selectedProduct.image,
-                    status: 'PENDING', 
-                    redeemMethod: 'PURCHASE', 
-                    timestamp: new Date().toLocaleString(),
-                    quantity: qty,
-                    store: homeStore // Added store
-                  };
-                  
-                  showToast(`成功购买 ${qty} 份商品`);
-                  
-                  const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
-                  saveProducts(updatedProducts);
-                  
-                  const storedMerch = localStorage.getItem('vr_user_merch');
-                  const existing = storedMerch ? JSON.parse(storedMerch) : [];
-                  localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
-                  window.dispatchEvent(new Event('storage_update'));
-                  
-                  // Immediately show modal
-                  setShowConfirmModal(false);
-                  setShowTicketQRCode(newTicket);
-
-              }} className="flex-1 bg-black text-white font-bold py-3 rounded-xl text-sm">
-                  确定
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* REDEEM PAGE (NEW) */}
-      {showRedeemPage && selectedProduct && (
+      {/* PURCHASE PAGE (Full Screen) */}
+      {showPurchasePage && selectedProduct && (
         <div className="absolute inset-0 z-[200] bg-white animate-in slide-in-from-bottom flex flex-col">
             {/* Header */}
-            <div className="p-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
-               <button onClick={() => setShowRedeemPage(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <ChevronLeft size={24} className="text-gray-600" />
-               </button>
-               <h2 className="flex-1 text-center font-bold text-lg text-gray-800 mr-8">积分兑换</h2>
+            <div className="bg-white px-4 py-3 flex items-center border-b border-gray-100 shadow-sm shrink-0 sticky top-0 z-30">
+                <button onClick={() => setShowPurchasePage(false)} className="p-1 -ml-1 rounded-full hover:bg-gray-50 text-gray-800"><ChevronLeft size={26} /></button>
+                <h2 className="flex-1 text-center font-bold text-base text-gray-900 mr-8">购买商品</h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-               {/* Product Card */}
-               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                   <div className="aspect-video bg-gray-50 relative">
-                       <img src={selectedProduct.image} className="w-full h-full object-contain p-4" />
-                   </div>
-                   <div className="p-4">
-                       <h3 className="text-lg font-black text-gray-800 mb-2">{selectedProduct.name}</h3>
-                       <div className="flex items-center justify-between">
-                           <div className="flex items-baseline gap-1">
-                               <span className="text-xl font-black text-purple-600">{selectedProduct.points}</span>
-                               <span className="text-xs font-bold text-purple-600">积分</span>
-                           </div>
-                           <span className="text-xs text-gray-400 font-bold bg-gray-100 px-2 py-1 rounded">库存: {selectedProduct.stock}</span>
-                       </div>
-                   </div>
-               </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 pb-20">
+                {/* Large Product Image */}
+                <div className="aspect-square bg-gray-50 rounded-2xl mb-6 flex items-center justify-center overflow-hidden">
+                    <img src={selectedProduct.image} className="w-full h-full object-cover" />
+                </div>
+                
+                {/* Info */}
+                <div className="mb-6">
+                    <h1 className="text-xl font-black text-slate-900 mb-2">{selectedProduct.name}</h1>
+                    <div className="flex items-center justify-between">
+                        <div className="text-lg font-bold text-slate-500">
+                            ¥{selectedProduct.price}
+                        </div>
+                        <div className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded font-bold">
+                            剩余数量: {getRemainingStock(selectedProduct)}
+                        </div>
+                    </div>
+                </div>
 
-               {/* Quantity Selector */}
-               <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100">
-                   <span className="text-sm font-bold text-gray-600">兑换数量</span>
-                   <div className="flex items-center gap-4 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
-                        <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-50 ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
-                        <span className="font-bold w-6 text-center">{confirmQuantity}</span>
-                        <button onClick={() => setConfirmQuantity(Math.min(selectedProduct.stock || 0, confirmQuantity + 1))} className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-50 ${confirmQuantity >= (selectedProduct.stock || 0) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
-                   </div>
-               </div>
+                {/* Divider */}
+                <div className="h-px bg-gray-100 w-full mb-6"></div>
 
-               {/* Summary */}
-               <div className="flex flex-col gap-2 p-2">
-                   <div className="flex justify-between items-center text-xs text-gray-500">
-                       <span>现有积分</span>
-                       <span className="font-bold">{userPoints} pts</span>
-                   </div>
-                   <div className="flex justify-between items-center text-sm">
-                       <span className="font-bold text-gray-800">所需积分</span>
-                       <span className={`font-black text-lg ${userPoints < (selectedProduct.points * confirmQuantity) ? 'text-red-500' : 'text-purple-600'}`}>
-                           {selectedProduct.points * confirmQuantity} <span className="text-xs font-bold text-gray-400">pts</span>
-                       </span>
-                   </div>
-               </div>
+                {/* Quantity */}
+                <div className="flex justify-between items-center mb-6">
+                    <span className="font-bold text-slate-800">购买数量</span>
+                    <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                        <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 flex items-center justify-center text-gray-600 ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
+                        <span className="font-black w-8 text-center">{confirmQuantity}</span>
+                        <button onClick={() => setConfirmQuantity(Math.min(getRemainingStock(selectedProduct), confirmQuantity + 1))} className={`w-8 h-8 flex items-center justify-center text-gray-600 ${confirmQuantity >= getRemainingStock(selectedProduct) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
+                    </div>
+                </div>
+                
+                <div className="p-4 bg-gray-50 rounded-xl text-xs text-gray-400 leading-relaxed">
+                    商品由LUMI魔法学院官方提供，购买后请前往柜台出示二维码核销领取。
+                </div>
             </div>
 
             {/* Bottom Bar */}
-            <div className="p-6 border-t border-gray-100 bg-white safe-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-               <button 
-                    disabled={userPoints < (selectedProduct.points * confirmQuantity)}
+            <div className="p-4 border-t border-gray-100 safe-bottom bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="flex justify-between items-center mb-3 px-1">
+                    <span className="text-xs font-bold text-gray-400">应付总额</span>
+                    <span className="text-2xl font-black text-slate-900">
+                        ¥{selectedProduct.price * confirmQuantity}
+                    </span>
+                </div>
+                
+                <button 
                     onClick={() => {
-                        if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
-                        if (userPoints < (selectedProduct.points * confirmQuantity)) { return; }
-                        
+                        const remaining = getRemainingStock(selectedProduct);
+                        if (confirmQuantity > remaining) { alert("数量超过库存配额"); return; }
                         const qty = confirmQuantity;
+                        
+                        // Create ONE ticket with quantity
                         const newTicket: UserMerchTicket = {
                             id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                            productId: selectedProduct.id, 
+                            productName: selectedProduct.name,
+                            productImage: selectedProduct.image,
+                            status: 'PENDING', 
+                            redeemMethod: 'PURCHASE', 
+                            timestamp: new Date().toLocaleString(),
+                            quantity: qty,
+                            store: homeStore // Added store
+                        };
+                        
+                        showToast(`成功购买 ${qty} 份商品`);
+                        
+                        const storedMerch = localStorage.getItem('vr_user_merch');
+                        const existing = storedMerch ? JSON.parse(storedMerch) : [];
+                        localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
+                        window.dispatchEvent(new Event('storage_update'));
+                        
+                        // Close Page and Show QR
+                        setShowPurchasePage(false);
+                        setShowTicketQRCode(newTicket);
+                    }}
+                    className={`w-full font-bold py-4 rounded-2xl text-base shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 bg-black text-white shadow-gray-300`}
+                >
+                    立即支付
+                </button>
+            </div>
+        </div>
+      )}
+      
+      {/* REDEEM PAGE (Full Screen) */}
+      {showRedeemPage && selectedProduct && (
+        <div className="absolute inset-0 z-[200] bg-white animate-in slide-in-from-bottom flex flex-col">
+            {/* Header */}
+            <div className="bg-white px-4 py-3 flex items-center border-b border-gray-100 shadow-sm shrink-0 sticky top-0 z-30">
+                <button onClick={() => setShowRedeemPage(false)} className="p-1 -ml-1 rounded-full hover:bg-gray-50 text-gray-800"><ChevronLeft size={26} /></button>
+                <h2 className="flex-1 text-center font-bold text-base text-gray-900 mr-8">积分兑换</h2>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 pb-20">
+                {/* Large Product Image */}
+                <div className="aspect-square bg-gray-50 rounded-2xl mb-6 flex items-center justify-center overflow-hidden">
+                    <img src={selectedProduct.image} className="w-full h-full object-cover" />
+                </div>
+                
+                {/* Info */}
+                <div className="mb-6">
+                    <h1 className="text-xl font-black text-slate-900 mb-2">{selectedProduct.name}</h1>
+                    <div className="flex items-center justify-between">
+                        <div className="text-lg font-bold text-purple-600">
+                            {selectedProduct.points} 积分
+                        </div>
+                        <div className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded font-bold">
+                            剩余数量: {getRemainingStock(selectedProduct)}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-100 w-full mb-6"></div>
+
+                {/* Quantity */}
+                <div className="flex justify-between items-center mb-6">
+                    <span className="font-bold text-slate-800">兑换数量</span>
+                    <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                        <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 flex items-center justify-center text-gray-600 ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
+                        <span className="font-black w-8 text-center">{confirmQuantity}</span>
+                        <button onClick={() => setConfirmQuantity(Math.min(getRemainingStock(selectedProduct), confirmQuantity + 1))} className={`w-8 h-8 flex items-center justify-center text-gray-600 ${confirmQuantity >= getRemainingStock(selectedProduct) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
+                    </div>
+                </div>
+                
+                <div className="p-4 bg-purple-50 rounded-xl text-xs text-purple-400 leading-relaxed border border-purple-100">
+                    消耗积分兑换商品，兑换成功后请前往柜台核销。
+                </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="p-4 border-t border-gray-100 safe-bottom bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                <div className="flex justify-between items-center mb-3 px-1">
+                    <span className="text-xs font-bold text-gray-400">所需积分</span>
+                    <span className={`text-2xl font-black ${userPoints < (selectedProduct.points * confirmQuantity) ? 'text-red-500' : 'text-purple-600'}`}>
+                        {selectedProduct.points * confirmQuantity}
+                        <span className="text-xs font-bold text-gray-400 ml-1">pts</span>
+                    </span>
+                </div>
+                
+                <button 
+                    onClick={() => {
+                        const remaining = getRemainingStock(selectedProduct);
+                        if (confirmQuantity > remaining) { alert("数量超过库存配额"); return; }
+                        const totalPoints = selectedProduct.points * confirmQuantity;
+                        if (userPoints < totalPoints) return;
+
+                        // Deduct points
+                        const newPoints = userPoints - totalPoints;
+                        setUserPoints(newPoints);
+                        localStorage.setItem('vr_user_points', newPoints.toString());
+
+                        const qty = confirmQuantity;
+                        const newTicket: UserMerchTicket = {
+                            id: 'M_PTS_' + Math.random().toString(36).substr(2, 9).toUpperCase(),
                             productId: selectedProduct.id, 
                             productName: selectedProduct.name,
                             productImage: selectedProduct.image,
@@ -987,17 +1033,11 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                             redeemMethod: 'POINTS', 
                             timestamp: new Date().toLocaleString(),
                             quantity: qty,
-                            store: homeStore // Added store
+                            store: homeStore
                         };
-
-                        const newPoints = userPoints - (selectedProduct.points * qty);
-                        setUserPoints(newPoints);
-                        localStorage.setItem('vr_user_points', newPoints.toString());
-                        showToast('兑换成功，请在【我的周边】查看核销码');
-
-                        const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
-                        saveProducts(updatedProducts);
                         
+                        showToast(`成功兑换 ${qty} 份商品`);
+
                         const storedMerch = localStorage.getItem('vr_user_merch');
                         const existing = storedMerch ? JSON.parse(storedMerch) : [];
                         localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
