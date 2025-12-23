@@ -583,16 +583,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                                         <span className="font-bold text-gray-800 text-sm line-clamp-1">{ticket.productName}</span>
                                         <span className={`text-[10px] px-2 py-0.5 rounded shrink-0 ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 mt-1">
-                                         {(ticket.quantity || 1) > 1 && <span className="text-xs font-bold text-purple-600 bg-purple-50 px-1.5 rounded">x{ticket.quantity}</span>}
-                                         <div className="text-[10px] text-gray-400 truncate max-w-[120px]">券码: {ticket.id}</div>
+                                    <div className="flex flex-col mt-1 space-y-0.5">
+                                         <div className="text-xs text-gray-500">
+                                            数量: <span className="font-bold text-gray-800">x{ticket.quantity || 1}</span>
+                                         </div>
+                                         <div className="text-[10px] text-gray-400 truncate">券码: {ticket.id}</div>
                                     </div>
                                 </div>
                                 
                                 {ticket.status === 'PENDING' && (
                                     <button 
                                         onClick={() => setShowTicketQRCode(ticket)}
-                                        className="w-full border border-purple-200 text-purple-600 bg-purple-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all mt-1"
+                                        className="w-full border border-purple-200 text-purple-600 bg-purple-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all mt-2"
                                     >
                                         <QrCode size={12} /> 查看核销码
                                     </button>
