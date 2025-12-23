@@ -567,23 +567,37 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 )}
                 {mineView === 'MERCH' && (
                      userMerchTickets.map(ticket => (
-                        <div key={ticket.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="font-bold text-gray-800 text-sm">
-                                  {ticket.productName} 
-                                  {(ticket.quantity || 1) > 1 && <span className="text-xs text-purple-600 ml-1">x{ticket.quantity}</span>}
-                                </span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
+                        <div key={ticket.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
+                            <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-50 relative">
+                                {ticket.productImage ? (
+                                    <img src={ticket.productImage} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                        <ImageIcon size={24} />
+                                    </div>
+                                )}
                             </div>
-                            <div className="text-[10px] text-gray-400">券码: {ticket.id}</div>
-                            {ticket.status === 'PENDING' && (
-                                <button 
-                                    onClick={() => setShowTicketQRCode(ticket)}
-                                    className="mt-3 w-full border border-purple-200 text-purple-600 bg-purple-50 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"
-                                >
-                                    <QrCode size={14} /> 查看核销码
-                                </button>
-                            )}
+                            <div className="flex-1 flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-bold text-gray-800 text-sm line-clamp-1">{ticket.productName}</span>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded shrink-0 ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                         {(ticket.quantity || 1) > 1 && <span className="text-xs font-bold text-purple-600 bg-purple-50 px-1.5 rounded">x{ticket.quantity}</span>}
+                                         <div className="text-[10px] text-gray-400 truncate max-w-[120px]">券码: {ticket.id}</div>
+                                    </div>
+                                </div>
+                                
+                                {ticket.status === 'PENDING' && (
+                                    <button 
+                                        onClick={() => setShowTicketQRCode(ticket)}
+                                        className="w-full border border-purple-200 text-purple-600 bg-purple-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all mt-1"
+                                    >
+                                        <QrCode size={12} /> 查看核销码
+                                    </button>
+                                )}
+                            </div>
                         </div>
                      ))
                 )}
@@ -960,6 +974,174 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                       票券使用期限为30天，请尽快使用奥~
                    </p>
                 </div>
+            </div>
+        </div>
+      )}
+
+      {/* BOOKING FLOW PAGE - Full Screen Overlay */}
+      {showBookingFlow && (
+        <div className="absolute inset-0 z-[200] bg-white animate-in slide-in-from-bottom flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
+               <button onClick={() => { if(bookingStep === 2) setBookingStep(1); else setShowBookingFlow(false); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <ChevronLeft size={24} className="text-gray-600" />
+               </button>
+               <h2 className="flex-1 text-center font-bold text-lg text-gray-800">{bookingStep === 1 ? '预约场次' : '确认订单'}</h2>
+               <div className="w-10"></div>
+            </div>
+
+            {bookingStep === 1 ? (
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {/* Date Selection */}
+                <div>
+                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2"><Calendar size={18} className="text-blue-500" /> 选择日期</label>
+                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                        {[0,1,2].map(idx => {
+                            const date = new Date();
+                            date.setDate(date.getDate() + idx);
+                            const isSelected = bookingDateIdx === idx;
+                            return (
+                            <button key={idx} onClick={() => setBookingDateIdx(idx)} className={`flex-shrink-0 w-[4.5rem] h-20 rounded-2xl flex flex-col items-center justify-center border-2 transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'border-gray-100 text-gray-400 bg-white'}`}>
+                                <span className="text-[10px] font-bold mb-1">{idx === 0 ? '今天' : idx === 1 ? '明天' : `${date.getMonth()+1}/${date.getDate()}`}</span>
+                                <span className="text-lg font-black">周{['日','一','二','三','四','五','六'][date.getDay()]}</span>
+                            </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Guest Count Selection - Max 4 */}
+                <div>
+                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2"><Users size={18} className="text-purple-500" /> 预约人数</label>
+                    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <span className="text-xs text-gray-500 font-bold">入场人数 <span className="text-[10px] text-gray-400 font-normal ml-1">(上限4人)</span></span>
+                        <div className="flex items-center gap-6">
+                            <button onClick={() => setBookingGuests(Math.max(1, bookingGuests - 1))} className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-600 active:scale-95 transition-all ${bookingGuests <= 1 ? 'opacity-50' : ''}`}>
+                                <Minus size={18} />
+                            </button>
+                            <span className="text-2xl font-black text-gray-800 w-8 text-center">{bookingGuests}</span>
+                            <button onClick={() => setBookingGuests(Math.min(4, bookingGuests + 1))} className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-600 active:scale-95 transition-all ${bookingGuests >= 4 ? 'opacity-50' : ''}`}>
+                                <Plus size={18} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Time Selection - Recommended 4 slots */}
+                <div>
+                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2">
+                        <Clock size={18} className="text-orange-500" /> 
+                        推荐场次 
+                        <span className="text-[10px] font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">离您最近的时段</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        {timeSlots.map(t => (
+                            <button key={t} onClick={() => setBookingTime(t)} className={`py-4 rounded-xl text-sm font-black border-2 transition-all relative overflow-hidden ${bookingTime === t ? 'bg-orange-50 text-orange-600 border-orange-400 shadow-md' : 'border-gray-100 text-gray-600 bg-white hover:border-gray-200'}`}>
+                                {t}
+                                {bookingTime === t && <div className="absolute top-0 right-0 bg-orange-400 text-white p-1 rounded-bl-lg"><CheckCircle size={10} /></div>}
+                            </button>
+                        ))}
+                    </div>
+                    {timeSlots.length === 0 && <div className="text-center text-xs text-gray-400 py-4">今日暂无可预约时段</div>}
+                </div>
+                </div>
+            ) : (
+                // Step 2: Payment / Ticket Selection
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-2 text-sm">预约信息</h3>
+                        <div className="space-y-1 text-xs text-gray-500">
+                             <div className="flex justify-between"><span>日期</span><span className="font-bold text-gray-800">{bookingDateIdx === 0 ? '今天' : bookingDateIdx === 1 ? '明天' : '后天'}</span></div>
+                             <div className="flex justify-between"><span>时间</span><span className="font-bold text-gray-800">{bookingTime}</span></div>
+                             <div className="flex justify-between"><span>人数</span><span className="font-bold text-gray-800">{bookingGuests}人</span></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center justify-between">
+                            <span>使用票券</span>
+                            <span className="text-[10px] text-gray-400 font-normal">可选 {Math.min(myTickets.filter(t => t.status === 'PENDING').length, bookingGuests)} 张</span>
+                        </h3>
+                        <div className="space-y-2">
+                             {myTickets.filter(t => t.status === 'PENDING').length === 0 && <div className="text-center py-4 text-xs text-gray-400 bg-gray-50 rounded-xl border border-dashed">暂无可用票券</div>}
+                             {myTickets.filter(t => t.status === 'PENDING').map(ticket => {
+                                 const isSelected = selectedTicketIds.includes(ticket.id);
+                                 return (
+                                     <div key={ticket.id} 
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                setSelectedTicketIds(prev => prev.filter(id => id !== ticket.id));
+                                            } else {
+                                                const currentCovered = selectedTicketIds.reduce((sum, id) => {
+                                                    const t = myTickets.find(mt => mt.id === id);
+                                                    return sum + (t?.peopleCount || 1);
+                                                }, 0);
+                                                
+                                                if (currentCovered < bookingGuests) {
+                                                    setSelectedTicketIds(prev => [...prev, ticket.id]);
+                                                }
+                                            }
+                                        }}
+                                        className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-white'}`}
+                                     >
+                                         <div>
+                                             <div className="text-xs font-bold text-gray-800">
+                                                {ticket.name} 
+                                                <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-normal">
+                                                    {(ticket.peopleCount || 1)}人权益
+                                                </span>
+                                             </div>
+                                             <div className="text-[10px] text-gray-400">{ticket.code}</div>
+                                         </div>
+                                         {isSelected ? <CheckSquare size={18} className="text-purple-600" /> : <Square size={18} className="text-gray-300" />}
+                                     </div>
+                                 )
+                             })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bottom Action */}
+            <div className="p-6 border-t border-gray-100 bg-white safe-bottom">
+               {bookingStep === 1 ? (
+                   <button 
+                        disabled={!bookingTime}
+                        onClick={() => setBookingStep(2)}
+                        className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 disabled:opacity-50 disabled:shadow-none active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                        下一步
+                    </button>
+               ) : (
+                   <div className="space-y-3">
+                       {(() => {
+                           const selectedTicketsList = myTickets.filter(t => selectedTicketIds.includes(t.id));
+                           const totalCovered = selectedTicketsList.reduce((acc, t) => acc + (t.peopleCount || 1), 0);
+                           const payCount = Math.max(0, bookingGuests - totalCovered);
+                           
+                           return (
+                           <>
+                           <div className="flex justify-between items-end px-2">
+                               <div className="text-xs text-gray-500">
+                                   已选票券抵扣: <span className="font-bold text-gray-800">{totalCovered}</span> 人
+                                   {payCount > 0 && <span className="ml-2 text-orange-600">需支付: {payCount} 人</span>}
+                               </div>
+                               <div className="text-xl font-black text-slate-900">
+                                   <span className="text-xs font-normal text-gray-400 mr-1">合计</span>
+                                   ¥{payCount * 98}
+                               </div>
+                           </div>
+                           <button 
+                                onClick={handleConfirmBooking}
+                                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            >
+                                {payCount > 0 ? '确认支付并预约' : '确认预约'}
+                            </button>
+                           </>
+                           );
+                       })()}
+                   </div>
+               )}
             </div>
         </div>
       )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ViewType, NavItem } from './types';
 import MobileFrame from './components/MobileFrame';
@@ -120,7 +119,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen bg-slate-900 overflow-hidden">
-      <div className="w-64 md:w-72 bg-slate-800 border-r border-slate-700 flex flex-col shadow-xl z-20">
+      <div className="w-64 md:w-72 bg-slate-800 border-r border-slate-700 flex flex-col shadow-xl z-20 shrink-0">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-white text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
             LUMI魔法学院
@@ -176,25 +175,27 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-slate-900 relative flex items-center justify-center p-8">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-           <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-purple-900/20 rounded-full blur-[120px]"></div>
-           <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900/20 rounded-full blur-[100px]"></div>
-        </div>
+      <div className="flex-1 bg-slate-900 relative overflow-y-auto overflow-x-hidden">
+        <div className="min-h-full flex items-center justify-center p-8">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
+               <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-purple-900/20 rounded-full blur-[120px]"></div>
+               <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-900/20 rounded-full blur-[100px]"></div>
+            </div>
 
-        <div className={`relative z-10 transition-all duration-500 ${currentView === ViewType.OFFLINE_STORE ? 'w-full h-full max-w-6xl' : 'scale-[0.85] md:scale-95 lg:scale-100'}`}>
-          {currentView === ViewType.OFFLINE_STORE ? (
-              <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl border-[12px] border-slate-800 bg-white">
+            <div className={`relative z-10 transition-all duration-500 ${currentView === ViewType.OFFLINE_STORE ? 'w-full h-full max-w-6xl' : 'scale-[0.85] md:scale-95 lg:scale-100'}`}>
+              {currentView === ViewType.OFFLINE_STORE ? (
+                  <div className="w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl border-[12px] border-slate-800 bg-white">
+                      {renderView()}
+                  </div>
+              ) : (
+                <MobileFrame statusBarColor={currentView === ViewType.GUEST_CHAT ? 'bg-white' : 'bg-gray-50'}>
                   {renderView()}
+                </MobileFrame>
+              )}
+              <div className="text-center mt-6 text-slate-400 text-sm font-medium tracking-wide uppercase">
+                Current View: {currentView === ViewType.OFFLINE_STORE ? 'SCENE: OFFLINE STORE' : NAV_ITEMS.find(n => n.id === currentView)?.label}
               </div>
-          ) : (
-            <MobileFrame statusBarColor={currentView === ViewType.GUEST_CHAT ? 'bg-white' : 'bg-gray-50'}>
-              {renderView()}
-            </MobileFrame>
-          )}
-          <div className="text-center mt-6 text-slate-400 text-sm font-medium tracking-wide uppercase">
-            Current View: {currentView === ViewType.OFFLINE_STORE ? 'SCENE: OFFLINE STORE' : NAV_ITEMS.find(n => n.id === currentView)?.label}
-          </div>
+            </div>
         </div>
       </div>
     </div>
