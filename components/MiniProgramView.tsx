@@ -648,9 +648,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                     <div className="text-xs font-bold text-gray-400 mb-1 flex items-center gap-1"><Sparkles size={12} className="text-yellow-400"/> 当前积分</div>
                     <div className="text-3xl font-black tracking-tight font-sans">{userPoints}</div>
                 </div>
-                <div className="relative z-10 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md">
-                   <div className="text-[10px] font-bold">做任务赚积分 ></div>
-                </div>
+                <button 
+                    onClick={() => {
+                        setShowStore(false);
+                        setBookingDateIdx(0);
+                        setBookingTime(null);
+                        setBookingGuests(1);
+                        setShowBookingFlow(true);
+                    }}
+                    className="relative z-10 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md active:scale-95 transition-all"
+                >
+                   <div className="text-[10px] font-bold">游玩魔法学院赚积分 {'>'}</div>
+                </button>
             </div>
 
             {/* Grid Layout - Poizon Style */}
