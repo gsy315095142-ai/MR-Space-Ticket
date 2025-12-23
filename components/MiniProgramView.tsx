@@ -633,55 +633,77 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
       )}
 
       {showStore && (
-        <div className="absolute inset-0 z-[120] bg-gray-50 animate-in slide-in-from-bottom flex flex-col">
-          <div className="bg-white p-4 flex items-center border-b shadow-sm">
-              <button onClick={() => setShowStore(false)} className="p-1 rounded-full"><ChevronLeft size={24} /></button>
-              <h2 className="flex-1 text-center font-bold">周边商城</h2>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                  <Gift size={12} /> {userPoints}
-              </div>
+        <div className="absolute inset-0 z-[120] bg-[#f4f4f4] animate-in slide-in-from-bottom flex flex-col">
+          {/* Poizon-like Header: Simple, White, Centered Title */}
+          <div className="bg-white px-4 py-3 flex items-center border-b border-gray-100 shadow-sm shrink-0 sticky top-0 z-30">
+              <button onClick={() => setShowStore(false)} className="p-1 -ml-1 rounded-full hover:bg-gray-50 text-gray-800"><ChevronLeft size={26} /></button>
+              <h2 className="flex-1 text-center font-bold text-base text-gray-900 mr-8">周边商城</h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-            {/* Points Banner */}
-            <div className="bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] rounded-2xl p-6 text-white shadow-xl shadow-purple-200 relative overflow-hidden shrink-0">
+          
+          <div className="flex-1 overflow-y-auto p-3 pb-20 no-scrollbar">
+            {/* Dark Card for Points (Contrast) */}
+            <div className="bg-[#1a1a1a] rounded-xl p-5 mb-4 shadow-lg flex justify-between items-center text-white mx-1 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/20 rounded-full blur-2xl -mr-4 -mt-4"></div>
                 <div className="relative z-10">
-                    <div className="flex items-center gap-1 text-xs font-bold text-purple-200 mb-1"><Sparkles size={12}/> 我的积分</div>
-                    <div className="text-4xl font-black mb-3 tracking-tight flex items-baseline gap-1">{userPoints} <span className="text-sm font-bold opacity-80">pts</span></div>
-                    <div className="text-[10px] bg-white/20 backdrop-blur-md inline-block px-3 py-1.5 rounded-lg text-white font-medium">兑换好礼，开启魔法回忆</div>
+                    <div className="text-xs font-bold text-gray-400 mb-1 flex items-center gap-1"><Sparkles size={12} className="text-yellow-400"/> 当前积分</div>
+                    <div className="text-3xl font-black tracking-tight font-sans">{userPoints}</div>
                 </div>
-                <div className="absolute right-0 bottom-[-10px] text-white opacity-10 transform translate-x-2 translate-y-2">
-                   <Gift size={120} />
+                <div className="relative z-10 bg-white/10 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md">
+                   <div className="text-[10px] font-bold">做任务赚积分 ></div>
                 </div>
             </div>
 
-            {/* Products List */}
+            {/* Grid Layout - Poizon Style */}
+            <div className="grid grid-cols-2 gap-3 mx-1">
             {products.filter(p => p.isOnShelf !== false).map(product => (
-              <div key={product.id} className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-4">
-                <div className="relative shrink-0 w-24 h-24">
-                  <img src={product.image} className="w-full h-full rounded-lg object-cover bg-gray-100" />
-                  {(!product.stock || product.stock <= 0) && <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center text-white text-[10px] font-bold backdrop-blur-[1px]">已售罄</div>}
+              <div key={product.id} className="bg-white rounded-lg overflow-hidden flex flex-col">
+                <div className="relative aspect-square bg-gray-50">
+                  <img src={product.image} className="w-full h-full object-cover" />
+                  {(!product.stock || product.stock <= 0) && (
+                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                           <span className="bg-black/60 text-white text-xs px-2 py-1 rounded font-bold backdrop-blur-sm">已售罄</span>
+                       </div>
+                  )}
                 </div>
-                <div className="flex-1 flex flex-col justify-between py-1">
-                  <div>
-                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{product.name}</h4>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                       {/* Stock Display - More intuitive text */}
-                      <span className={`text-[10px] flex items-center gap-1 px-2 py-0.5 rounded font-bold ${product.stock && product.stock > 0 ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-600'}`}>
-                         {product.stock && product.stock > 0 ? `剩余库存: ${product.stock}` : '暂时缺货'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg border transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-50 text-gray-300 border-gray-100' : 'bg-white text-purple-600 border-purple-200 active:bg-purple-50'}`}>
-                        {product.points}积分 兑换
-                    </button>
-                    <button disabled={!product.stock || product.stock <= 0} onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowConfirmModal(true); }} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-100 text-gray-400' : 'bg-purple-600 text-white active:bg-purple-700'}`}>
-                        ¥{product.price} 购买
-                    </button>
+                <div className="p-3 flex-1 flex flex-col">
+                  <h4 className="font-bold text-gray-900 text-xs leading-5 line-clamp-2 mb-3 h-10">{product.name}</h4>
+                  
+                  <div className="mt-auto">
+                      <div className="flex items-baseline gap-1 mb-2">
+                          <span className="text-xs font-bold text-gray-900">¥</span>
+                          <span className="text-lg font-black text-gray-900 font-sans">{product.price}</span>
+                          <span className="text-[10px] text-gray-400 ml-auto scale-90 origin-right">{product.points}积分</span>
+                      </div>
+
+                      <div className="text-[9px] text-gray-400 mb-3 flex items-center">
+                          {product.stock && product.stock > 0 ? `库存: ${product.stock}` : '暂时缺货'}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button 
+                            disabled={!product.stock || product.stock <= 0} 
+                            onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowConfirmModal(true); }} 
+                            className={`flex-1 text-[10px] font-bold py-2 rounded transition-colors border ${!product.stock || product.stock <= 0 ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-purple-600 bg-purple-50/50'}`}
+                        >
+                            兑换
+                        </button>
+                        <button 
+                            disabled={!product.stock || product.stock <= 0} 
+                            onClick={() => { setSelectedProduct(product); setConfirmMethod('PURCHASE'); setConfirmQuantity(1); setShowConfirmModal(true); }} 
+                            className={`flex-1 text-[10px] font-bold py-2 rounded transition-colors ${!product.stock || product.stock <= 0 ? 'bg-gray-100 text-gray-300' : 'bg-black text-white'}`}
+                        >
+                            购买
+                        </button>
+                      </div>
                   </div>
                 </div>
               </div>
             ))}
+            </div>
+            
+             <div className="text-center py-6 text-[10px] text-gray-300 font-mono tracking-widest uppercase">
+                End of Collection
+             </div>
           </div>
         </div>
       )}
