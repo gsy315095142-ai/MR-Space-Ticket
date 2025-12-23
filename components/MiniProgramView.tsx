@@ -26,6 +26,7 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   const [showIntro, setShowIntro] = useState(false);
   const [showStore, setShowStore] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRedeemPage, setShowRedeemPage] = useState(false); // New state for Redeem Page
   const [selectedProduct, setSelectedProduct] = useState<MerchItem | null>(null);
   const [confirmMethod, setConfirmMethod] = useState<'PURCHASE' | 'POINTS'>('PURCHASE');
   const [confirmQuantity, setConfirmQuantity] = useState(1);
@@ -698,11 +699,16 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                   <h4 className="font-bold text-gray-900 text-xs leading-5 line-clamp-2 mb-3 h-10">{product.name}</h4>
                   
                   <div className="mt-auto">
-                      <div className="flex items-baseline gap-1 mb-2">
-                          <span className="text-xs font-bold text-gray-900">¥</span>
-                          <span className="text-lg font-black text-gray-900 font-sans">{product.price}</span>
-                          <span className="text-[10px] text-gray-400 ml-auto scale-90 origin-right">{product.points}积分</span>
+                      {/* Price & Points Row */}
+                      <div className="flex items-baseline gap-1 mb-1">
+                          <span className="text-sm font-bold text-purple-600">{product.points}</span>
+                          <span className="text-[10px] font-bold text-purple-600">积分</span>
+                          <span className="text-[10px] text-gray-300 mx-1">|</span>
+                          <span className="text-xs font-bold text-gray-900">¥{product.price}</span>
                       </div>
+                      
+                      {/* Popularity Tag */}
+                      <div className="text-[9px] text-gray-400 mb-2">10万+人关注</div>
 
                       <div className="text-[9px] text-gray-400 mb-3 flex items-center">
                           {product.stock && product.stock > 0 ? `库存: ${product.stock}` : '暂时缺货'}
@@ -711,10 +717,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                       <div className="flex gap-2">
                         <button 
                             disabled={!product.stock || product.stock <= 0} 
-                            onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowConfirmModal(true); }} 
+                            onClick={() => { setSelectedProduct(product); setConfirmMethod('POINTS'); setConfirmQuantity(1); setShowRedeemPage(true); }} 
                             className={`flex-1 text-[10px] font-bold py-2 rounded transition-colors border ${!product.stock || product.stock <= 0 ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-purple-600 bg-purple-50/50'}`}
                         >
-                            兑换
+                            积分兑换
                         </button>
                         <button 
                             disabled={!product.stock || product.stock <= 0} 
@@ -741,10 +747,10 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
           <div className="bg-white w-full rounded-2xl p-6 relative shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-bold text-lg mb-4 text-center">{confirmMethod === 'PURCHASE' ? '购买确认' : '兑换确认'}</h3>
+            <h3 className="font-bold text-lg mb-4 text-center">购买确认</h3>
             <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-xl">
                <img src={selectedProduct.image} className="w-16 h-16 rounded-lg object-cover bg-white" />
-               <div><div className="text-sm font-bold text-gray-800">{selectedProduct.name}</div><div className="text-[10px] text-gray-400">单价: {confirmMethod === 'PURCHASE' ? `¥${selectedProduct.price}` : `${selectedProduct.points} pts`}</div><div className="text-[10px] text-emerald-600 font-bold mt-1">当前库存: {selectedProduct.stock || 0}</div></div>
+               <div><div className="text-sm font-bold text-gray-800">{selectedProduct.name}</div><div className="text-[10px] text-gray-400">单价: ¥{selectedProduct.price}</div><div className="text-[10px] text-emerald-600 font-bold mt-1">当前库存: {selectedProduct.stock || 0}</div></div>
             </div>
             <div className="flex items-center justify-between mb-4 px-1">
               <span className="text-sm font-bold text-gray-600">选择数量</span>
@@ -755,36 +761,18 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
               </div>
             </div>
 
-            {/* Total Points Display */}
-            {confirmMethod === 'POINTS' && (
-                <div className="flex justify-end items-center gap-2 mb-8 px-1">
-                    <span className="text-xs font-bold text-gray-500">所需总积分</span>
-                    <span className={`text-lg font-black ${userPoints < (selectedProduct.points * confirmQuantity) ? 'text-red-500' : 'text-purple-600'}`}>
-                        {selectedProduct.points * confirmQuantity}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-400">pts</span>
-                </div>
-            )}
-            
-            {/* Total Price Display for consistency */}
-            {confirmMethod === 'PURCHASE' && (
-                 <div className="flex justify-end items-center gap-2 mb-8 px-1">
-                    <span className="text-xs font-bold text-gray-500">所需总金额</span>
-                    <span className="text-lg font-black text-gray-800">
-                        ¥{selectedProduct.price * confirmQuantity}
-                    </span>
-                </div>
-            )}
+            <div className="flex justify-end items-center gap-2 mb-8 px-1">
+                <span className="text-xs font-bold text-gray-500">所需总金额</span>
+                <span className="text-lg font-black text-gray-800">
+                    ¥{selectedProduct.price * confirmQuantity}
+                </span>
+            </div>
             
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">取消</button>
               <button 
-                disabled={confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)}
                 onClick={() => {
                   if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
-                  // Points check redundant due to disabled attribute but logic remains same if somehow clicked
-                  if (confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity)) { return; }
-                  const method = confirmMethod;
                   const qty = confirmQuantity;
                   
                   // Create ONE ticket with quantity
@@ -794,41 +782,133 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                     productName: selectedProduct.name,
                     productImage: selectedProduct.image,
                     status: 'PENDING', 
-                    redeemMethod: method, 
+                    redeemMethod: 'PURCHASE', 
                     timestamp: new Date().toLocaleString(),
                     quantity: qty
                   };
                   
-                if (method === 'POINTS') {
-                    const newPoints = userPoints - (selectedProduct.points * qty);
-                    setUserPoints(newPoints);
-                    localStorage.setItem('vr_user_points', newPoints.toString());
-                    showToast('兑换成功，请在【我的周边】查看核销码');
-                } else {
-                    // Purchase simulation success
-                    showToast(`成功购买 ${qty} 份商品`);
-                }
-                const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
-                saveProducts(updatedProducts);
-                
-                const storedMerch = localStorage.getItem('vr_user_merch');
-                const existing = storedMerch ? JSON.parse(storedMerch) : [];
-                localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
-                window.dispatchEvent(new Event('storage_update'));
-                
-                // Immediately show modal
-                setShowConfirmModal(false);
-                setShowTicketQRCode(newTicket);
+                  showToast(`成功购买 ${qty} 份商品`);
+                  
+                  const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
+                  saveProducts(updatedProducts);
+                  
+                  const storedMerch = localStorage.getItem('vr_user_merch');
+                  const existing = storedMerch ? JSON.parse(storedMerch) : [];
+                  localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
+                  window.dispatchEvent(new Event('storage_update'));
+                  
+                  // Immediately show modal
+                  setShowConfirmModal(false);
+                  setShowTicketQRCode(newTicket);
 
-              }} className={`flex-1 font-bold py-3 rounded-xl text-sm ${confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-purple-600 text-white'}`}>
-                  {confirmMethod === 'POINTS' && userPoints < (selectedProduct.points * confirmQuantity) ? '积分不足' : '确定'}
+              }} className="flex-1 bg-black text-white font-bold py-3 rounded-xl text-sm">
+                  确定
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* REDEEM FLOW MODAL */}
+      {/* REDEEM PAGE (NEW) */}
+      {showRedeemPage && selectedProduct && (
+        <div className="absolute inset-0 z-[200] bg-white animate-in slide-in-from-bottom flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
+               <button onClick={() => setShowRedeemPage(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <ChevronLeft size={24} className="text-gray-600" />
+               </button>
+               <h2 className="flex-1 text-center font-bold text-lg text-gray-800 mr-8">积分兑换</h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+               {/* Product Card */}
+               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                   <div className="aspect-video bg-gray-50 relative">
+                       <img src={selectedProduct.image} className="w-full h-full object-contain p-4" />
+                   </div>
+                   <div className="p-4">
+                       <h3 className="text-lg font-black text-gray-800 mb-2">{selectedProduct.name}</h3>
+                       <div className="flex items-center justify-between">
+                           <div className="flex items-baseline gap-1">
+                               <span className="text-xl font-black text-purple-600">{selectedProduct.points}</span>
+                               <span className="text-xs font-bold text-purple-600">积分</span>
+                           </div>
+                           <span className="text-xs text-gray-400 font-bold bg-gray-100 px-2 py-1 rounded">库存: {selectedProduct.stock}</span>
+                       </div>
+                   </div>
+               </div>
+
+               {/* Quantity Selector */}
+               <div className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between border border-gray-100">
+                   <span className="text-sm font-bold text-gray-600">兑换数量</span>
+                   <div className="flex items-center gap-4 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+                        <button onClick={() => setConfirmQuantity(Math.max(1, confirmQuantity - 1))} className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-50 ${confirmQuantity <= 1 ? 'opacity-30' : ''}`}><Minus size={16}/></button>
+                        <span className="font-bold w-6 text-center">{confirmQuantity}</span>
+                        <button onClick={() => setConfirmQuantity(Math.min(selectedProduct.stock || 0, confirmQuantity + 1))} className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-50 ${confirmQuantity >= (selectedProduct.stock || 0) ? 'opacity-30' : ''}`}><Plus size={16}/></button>
+                   </div>
+               </div>
+
+               {/* Summary */}
+               <div className="flex flex-col gap-2 p-2">
+                   <div className="flex justify-between items-center text-xs text-gray-500">
+                       <span>现有积分</span>
+                       <span className="font-bold">{userPoints} pts</span>
+                   </div>
+                   <div className="flex justify-between items-center text-sm">
+                       <span className="font-bold text-gray-800">所需积分</span>
+                       <span className={`font-black text-lg ${userPoints < (selectedProduct.points * confirmQuantity) ? 'text-red-500' : 'text-purple-600'}`}>
+                           {selectedProduct.points * confirmQuantity} <span className="text-xs font-bold text-gray-400">pts</span>
+                       </span>
+                   </div>
+               </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="p-6 border-t border-gray-100 bg-white safe-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+               <button 
+                    disabled={userPoints < (selectedProduct.points * confirmQuantity)}
+                    onClick={() => {
+                        if (confirmQuantity > (selectedProduct.stock || 0)) { alert("数量超过库存配额"); return; }
+                        if (userPoints < (selectedProduct.points * confirmQuantity)) { return; }
+                        
+                        const qty = confirmQuantity;
+                        const newTicket: UserMerchTicket = {
+                            id: 'M' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                            productId: selectedProduct.id, 
+                            productName: selectedProduct.name,
+                            productImage: selectedProduct.image,
+                            status: 'PENDING', 
+                            redeemMethod: 'POINTS', 
+                            timestamp: new Date().toLocaleString(),
+                            quantity: qty
+                        };
+
+                        const newPoints = userPoints - (selectedProduct.points * qty);
+                        setUserPoints(newPoints);
+                        localStorage.setItem('vr_user_points', newPoints.toString());
+                        showToast('兑换成功，请在【我的周边】查看核销码');
+
+                        const updatedProducts = products.map(p => p.id === selectedProduct.id ? { ...p, stock: (p.stock || 0) - qty } : p);
+                        saveProducts(updatedProducts);
+                        
+                        const storedMerch = localStorage.getItem('vr_user_merch');
+                        const existing = storedMerch ? JSON.parse(storedMerch) : [];
+                        localStorage.setItem('vr_user_merch', JSON.stringify([newTicket, ...existing]));
+                        window.dispatchEvent(new Event('storage_update'));
+                        
+                        // Close Page and Show QR
+                        setShowRedeemPage(false);
+                        setShowTicketQRCode(newTicket);
+                    }}
+                    className={`w-full font-bold py-4 rounded-2xl text-base shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${userPoints < (selectedProduct.points * confirmQuantity) ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' : 'bg-purple-600 text-white shadow-purple-200'}`}
+                >
+                    {userPoints < (selectedProduct.points * confirmQuantity) ? '积分不足' : '立即兑换'}
+                </button>
+            </div>
+        </div>
+      )}
+
+      {/* REDEEM FLOW MODAL (Existing Coupon Redeem) */}
       {showRedeemFlow && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in bg-black/80 backdrop-blur-sm">
             <div className="w-full max-w-sm bg-gradient-to-b from-[#FFF5E6] to-white rounded-3xl overflow-hidden shadow-2xl relative">
@@ -957,174 +1037,6 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                   </button>
               </div>
           </div>
-      )}
-
-      {/* BOOKING FLOW PAGE - Full Screen Overlay */}
-      {showBookingFlow && (
-        <div className="absolute inset-0 z-[200] bg-white animate-in slide-in-from-bottom flex flex-col">
-            {/* Header */}
-            <div className="p-4 flex items-center border-b border-gray-100 shadow-sm shrink-0">
-               <button onClick={() => { if(bookingStep === 2) setBookingStep(1); else setShowBookingFlow(false); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <ChevronLeft size={24} className="text-gray-600" />
-               </button>
-               <h2 className="flex-1 text-center font-bold text-lg text-gray-800">{bookingStep === 1 ? '预约场次' : '确认订单'}</h2>
-               <div className="w-10"></div>
-            </div>
-
-            {bookingStep === 1 ? (
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                {/* Date Selection */}
-                <div>
-                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2"><Calendar size={18} className="text-blue-500" /> 选择日期</label>
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                        {[0,1,2].map(idx => {
-                            const date = new Date();
-                            date.setDate(date.getDate() + idx);
-                            const isSelected = bookingDateIdx === idx;
-                            return (
-                            <button key={idx} onClick={() => setBookingDateIdx(idx)} className={`flex-shrink-0 w-[4.5rem] h-20 rounded-2xl flex flex-col items-center justify-center border-2 transition-all ${isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'border-gray-100 text-gray-400 bg-white'}`}>
-                                <span className="text-[10px] font-bold mb-1">{idx === 0 ? '今天' : idx === 1 ? '明天' : `${date.getMonth()+1}/${date.getDate()}`}</span>
-                                <span className="text-lg font-black">周{['日','一','二','三','四','五','六'][date.getDay()]}</span>
-                            </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Guest Count Selection - Max 4 */}
-                <div>
-                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2"><Users size={18} className="text-purple-500" /> 预约人数</label>
-                    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <span className="text-xs text-gray-500 font-bold">入场人数 <span className="text-[10px] text-gray-400 font-normal ml-1">(上限4人)</span></span>
-                        <div className="flex items-center gap-6">
-                            <button onClick={() => setBookingGuests(Math.max(1, bookingGuests - 1))} className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-600 active:scale-95 transition-all ${bookingGuests <= 1 ? 'opacity-50' : ''}`}>
-                                <Minus size={18} />
-                            </button>
-                            <span className="text-2xl font-black text-gray-800 w-8 text-center">{bookingGuests}</span>
-                            <button onClick={() => setBookingGuests(Math.min(4, bookingGuests + 1))} className={`w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-gray-200 text-gray-600 active:scale-95 transition-all ${bookingGuests >= 4 ? 'opacity-50' : ''}`}>
-                                <Plus size={18} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Time Selection - Recommended 4 slots */}
-                <div>
-                    <label className="text-sm font-black text-gray-800 mb-4 block flex items-center gap-2">
-                        <Clock size={18} className="text-orange-500" /> 
-                        推荐场次 
-                        <span className="text-[10px] font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">离您最近的时段</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                        {timeSlots.map(t => (
-                            <button key={t} onClick={() => setBookingTime(t)} className={`py-4 rounded-xl text-sm font-black border-2 transition-all relative overflow-hidden ${bookingTime === t ? 'bg-orange-50 text-orange-600 border-orange-400 shadow-md' : 'border-gray-100 text-gray-600 bg-white hover:border-gray-200'}`}>
-                                {t}
-                                {bookingTime === t && <div className="absolute top-0 right-0 bg-orange-400 text-white p-1 rounded-bl-lg"><CheckCircle size={10} /></div>}
-                            </button>
-                        ))}
-                    </div>
-                    {timeSlots.length === 0 && <div className="text-center text-xs text-gray-400 py-4">今日暂无可预约时段</div>}
-                </div>
-                </div>
-            ) : (
-                // Step 2: Payment / Ticket Selection
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <h3 className="font-bold text-gray-800 mb-2 text-sm">预约信息</h3>
-                        <div className="space-y-1 text-xs text-gray-500">
-                             <div className="flex justify-between"><span>日期</span><span className="font-bold text-gray-800">{bookingDateIdx === 0 ? '今天' : bookingDateIdx === 1 ? '明天' : '后天'}</span></div>
-                             <div className="flex justify-between"><span>时间</span><span className="font-bold text-gray-800">{bookingTime}</span></div>
-                             <div className="flex justify-between"><span>人数</span><span className="font-bold text-gray-800">{bookingGuests}人</span></div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center justify-between">
-                            <span>使用票券</span>
-                            <span className="text-[10px] text-gray-400 font-normal">可选 {Math.min(myTickets.filter(t => t.status === 'PENDING').length, bookingGuests)} 张</span>
-                        </h3>
-                        <div className="space-y-2">
-                             {myTickets.filter(t => t.status === 'PENDING').length === 0 && <div className="text-center py-4 text-xs text-gray-400 bg-gray-50 rounded-xl border border-dashed">暂无可用票券</div>}
-                             {myTickets.filter(t => t.status === 'PENDING').map(ticket => {
-                                 const isSelected = selectedTicketIds.includes(ticket.id);
-                                 return (
-                                     <div key={ticket.id} 
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                setSelectedTicketIds(prev => prev.filter(id => id !== ticket.id));
-                                            } else {
-                                                const currentCovered = selectedTicketIds.reduce((sum, id) => {
-                                                    const t = myTickets.find(mt => mt.id === id);
-                                                    return sum + (t?.peopleCount || 1);
-                                                }, 0);
-                                                
-                                                if (currentCovered < bookingGuests) {
-                                                    setSelectedTicketIds(prev => [...prev, ticket.id]);
-                                                }
-                                            }
-                                        }}
-                                        className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-white'}`}
-                                     >
-                                         <div>
-                                             <div className="text-xs font-bold text-gray-800">
-                                                {ticket.name} 
-                                                <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 rounded font-normal">
-                                                    {(ticket.peopleCount || 1)}人权益
-                                                </span>
-                                             </div>
-                                             <div className="text-[10px] text-gray-400">{ticket.code}</div>
-                                         </div>
-                                         {isSelected ? <CheckSquare size={18} className="text-purple-600" /> : <Square size={18} className="text-gray-300" />}
-                                     </div>
-                                 )
-                             })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Bottom Action */}
-            <div className="p-6 border-t border-gray-100 bg-white safe-bottom">
-               {bookingStep === 1 ? (
-                   <button 
-                        disabled={!bookingTime}
-                        onClick={() => setBookingStep(2)}
-                        className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 disabled:opacity-50 disabled:shadow-none active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                    >
-                        下一步
-                    </button>
-               ) : (
-                   <div className="space-y-3">
-                       {(() => {
-                           const selectedTicketsList = myTickets.filter(t => selectedTicketIds.includes(t.id));
-                           const totalCovered = selectedTicketsList.reduce((acc, t) => acc + (t.peopleCount || 1), 0);
-                           const payCount = Math.max(0, bookingGuests - totalCovered);
-                           
-                           return (
-                           <>
-                           <div className="flex justify-between items-end px-2">
-                               <div className="text-xs text-gray-500">
-                                   已选票券抵扣: <span className="font-bold text-gray-800">{totalCovered}</span> 人
-                                   {payCount > 0 && <span className="ml-2 text-orange-600">需支付: {payCount} 人</span>}
-                               </div>
-                               <div className="text-xl font-black text-slate-900">
-                                   <span className="text-xs font-normal text-gray-400 mr-1">合计</span>
-                                   ¥{payCount * 98}
-                               </div>
-                           </div>
-                           <button 
-                                onClick={handleConfirmBooking}
-                                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-                            >
-                                {payCount > 0 ? '确认支付并预约' : '确认预约'}
-                            </button>
-                           </>
-                           );
-                       })()}
-                   </div>
-               )}
-            </div>
-        </div>
       )}
 
       {showTicketQRCode && (

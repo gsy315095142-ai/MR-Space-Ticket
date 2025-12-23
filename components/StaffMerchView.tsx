@@ -211,13 +211,13 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
       {editingProduct && (
         <div className="absolute inset-0 z-[260] flex items-center justify-center p-6 animate-in fade-in">
            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)}></div>
-           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10 flex flex-col max-h-[90%]">
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10 flex flex-col h-auto">
                <div className="flex justify-between items-center mb-4">
                    <h3 className="font-bold text-lg text-slate-800">{editingProduct.id.startsWith('p') ? '编辑商品' : '上架商品'}</h3>
                    <button onClick={() => setEditingProduct(null)} className="p-1 rounded-full hover:bg-gray-100"><X size={20} className="text-gray-400"/></button>
                </div>
                
-               <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar pb-4">
+               <div className="space-y-4">
                    <div className="flex flex-col items-center gap-3">
                        <div className="w-24 h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative">
                            {editingProduct.image ? (
@@ -336,7 +336,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                            console.error('LocalStorage quota exceeded', e);
                        }
                    }}
-                   className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-200 active:scale-95 transition-all mt-2"
+                   className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-200 active:scale-95 transition-all mt-4"
                >
                    保存更改
                </button>
