@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle, Upload, Box, TicketCheck, History, Wallet, Trophy, ShieldCheck, Search, FileText, Phone, CheckSquare, Square, Ticket as TicketIcon } from 'lucide-react';
+import { Home, User, Ticket, Calendar, ChevronRight, MapPin, ScanLine, Gift, Clock, Star, X, Music, ArrowLeft, Users, CheckCircle, CreditCard, ChevronLeft, CalendarDays, Settings, PieChart, BarChart, QrCode, LogOut, RefreshCw, Copy, Filter, Command, PlayCircle, Share, ChevronDown, Edit, Bell, AlertCircle, Share2, ArrowRightLeft, CalendarClock, UserPlus, ShoppingBag, BookOpen, Info, ShoppingCart, PackageCheck, TrendingUp, Activity, Plus, Minus, Store, Sparkles, Wand2, Percent, Save, Image as ImageIcon, PlusCircle, Upload, Box, TicketCheck, History, Wallet, Trophy, ShieldCheck, Search, FileText, Phone, CheckSquare, Square, Ticket as TicketIcon, RotateCcw } from 'lucide-react';
 import { MerchItem, UserMerchTicket, GlobalBooking, MyTicket, UserSession } from '../types';
 import MiniProgramHome from './MiniProgramHome';
 
@@ -35,6 +35,8 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
   const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [showTicketQRCode, setShowTicketQRCode] = useState<UserMerchTicket | null>(null);
   const [storeCategory, setStoreCategory] = useState('全部');
+  const [merchFilter, setMerchFilter] = useState<'PENDING' | 'REDEEMED' | 'REFUNDED'>('PENDING');
+  const [revokeTicket, setRevokeTicket] = useState<UserMerchTicket | null>(null);
 
   // Guest Data
   const [myTickets, setMyTickets] = useState<MyTicket[]>([]);
@@ -220,6 +222,21 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
     setShowMineRedDot(true);
   };
 
+  const handleUserRevoke = () => {
+      if (!revokeTicket) return;
+
+      const updatedMerch = userMerchTickets.map(t => 
+          t.id === revokeTicket.id ? { ...t, status: 'REFUNDED' as const } : t
+      );
+      
+      setUserMerchTickets(updatedMerch);
+      localStorage.setItem('vr_user_merch', JSON.stringify(updatedMerch));
+      
+      window.dispatchEvent(new Event('storage_update'));
+      showToast('商品已撤销成功');
+      setRevokeTicket(null);
+  };
+
   const handleConfirmBooking = () => {
       // 1. Process used tickets (from selection)
       let updatedTickets = [...myTickets];
@@ -326,6 +343,9 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
     useEffect(() => {
         if (mineView === 'MENU') setMineView('TICKETS');
     }, []);
+
+    // Filter merchandise tickets
+    const filteredMerch = userMerchTickets.filter(t => t.status === merchFilter);
 
     return (
         <div className="flex flex-col h-full bg-[#f6f7f9]">
@@ -566,42 +586,80 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                     </div>
                 )}
                 {mineView === 'MERCH' && (
-                     userMerchTickets.map(ticket => (
-                        <div key={ticket.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
-                            <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-50 relative">
-                                {ticket.productImage ? (
-                                    <img src={ticket.productImage} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <ImageIcon size={24} />
+                    <div className="space-y-4">
+                        {/* Status Filter Tabs */}
+                        <div className="bg-white p-1 rounded-xl flex shadow-sm border border-gray-100">
+                            <button onClick={() => setMerchFilter('PENDING')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all ${merchFilter === 'PENDING' ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-400'}`}>待核销</button>
+                            <button onClick={() => setMerchFilter('REDEEMED')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all ${merchFilter === 'REDEEMED' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-400'}`}>已核销</button>
+                            <button onClick={() => setMerchFilter('REFUNDED')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all ${merchFilter === 'REFUNDED' ? 'bg-gray-100 text-gray-600 shadow-sm' : 'text-gray-400'}`}>已撤销</button>
+                        </div>
+
+                        {/* List */}
+                        <div className="space-y-3">
+                            {filteredMerch.length === 0 && (
+                                <div className="text-center py-10 opacity-30 flex flex-col items-center">
+                                    <ShoppingBag size={40} className="mb-2" />
+                                    <p className="text-xs font-bold uppercase tracking-widest">暂无{merchFilter === 'PENDING' ? '待核销' : merchFilter === 'REDEEMED' ? '已核销' : '已撤销'}商品</p>
+                                </div>
+                            )}
+                            
+                            {filteredMerch.map(ticket => (
+                                <div key={ticket.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-50 relative">
+                                        {ticket.productImage ? (
+                                            <img src={ticket.productImage} className={`w-full h-full object-cover ${ticket.status === 'REFUNDED' ? 'grayscale opacity-50' : ''}`} />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                <ImageIcon size={24} />
+                                            </div>
+                                        )}
+                                        {ticket.status === 'REFUNDED' && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                                <span className="bg-gray-800 text-white text-[9px] px-2 py-0.5 rounded">已撤销</span>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            <div className="flex-1 flex flex-col justify-between">
-                                <div>
-                                    <div className="flex justify-between items-start">
-                                        <span className="font-bold text-gray-800 text-sm line-clamp-1">{ticket.productName}</span>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded shrink-0 ${ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{ticket.status === 'PENDING' ? '待核销' : '已核销'}</span>
-                                    </div>
-                                    <div className="flex flex-col mt-1 space-y-0.5">
-                                         <div className="text-xs text-gray-500">
-                                            数量: <span className="font-bold text-gray-800">x{ticket.quantity || 1}</span>
-                                         </div>
-                                         <div className="text-[10px] text-gray-400 truncate">券码: {ticket.id}</div>
+                                    <div className="flex-1 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex justify-between items-start">
+                                                <span className={`font-bold text-sm line-clamp-1 ${ticket.status === 'REFUNDED' ? 'text-gray-400' : 'text-gray-800'}`}>{ticket.productName}</span>
+                                                <span className={`text-[10px] px-2 py-0.5 rounded shrink-0 font-bold ${
+                                                    ticket.status === 'PENDING' ? 'bg-orange-100 text-orange-600' : 
+                                                    ticket.status === 'REDEEMED' ? 'bg-green-100 text-green-600' : 
+                                                    'bg-gray-100 text-gray-400'
+                                                }`}>
+                                                    {ticket.status === 'PENDING' ? '待核销' : ticket.status === 'REDEEMED' ? '已核销' : '已撤销'}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col mt-1 space-y-0.5">
+                                                <div className="text-xs text-gray-500">
+                                                    数量: <span className="font-bold text-gray-800">x{ticket.quantity || 1}</span>
+                                                </div>
+                                                <div className="text-[10px] text-gray-400 truncate">券码: {ticket.id}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        {ticket.status === 'PENDING' && (
+                                            <div className="flex gap-2 mt-2">
+                                                <button 
+                                                    onClick={() => setRevokeTicket(ticket)}
+                                                    className="w-20 border border-gray-200 text-gray-500 bg-gray-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center active:scale-95 transition-all"
+                                                >
+                                                    撤销
+                                                </button>
+                                                <button 
+                                                    onClick={() => setShowTicketQRCode(ticket)}
+                                                    className="flex-1 border border-purple-200 text-purple-600 bg-purple-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"
+                                                >
+                                                    <QrCode size={12} /> 查看核销码
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                
-                                {ticket.status === 'PENDING' && (
-                                    <button 
-                                        onClick={() => setShowTicketQRCode(ticket)}
-                                        className="w-full border border-purple-200 text-purple-600 bg-purple-50 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-all mt-2"
-                                    >
-                                        <QrCode size={12} /> 查看核销码
-                                    </button>
-                                )}
-                            </div>
+                            ))}
                         </div>
-                     ))
+                    </div>
                 )}
             </div>
         </div>
@@ -756,6 +814,37 @@ const MiniProgramView: React.FC<MiniProgramViewProps> = ({ resetTrigger }) => {
                 End of Collection
              </div>
           </div>
+        </div>
+      )}
+
+      {/* Revoke Confirmation Modal (User) */}
+      {revokeTicket && (
+        <div className="absolute inset-0 z-[270] flex items-center justify-center p-6 animate-in fade-in">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setRevokeTicket(null)}></div>
+           <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 relative z-10 text-center">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4 border-4 border-red-50/50">
+                    <RotateCcw size={32} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-800 mb-2">确认撤销商品</h3>
+                <p className="text-sm text-gray-500 mb-6 px-4">
+                    是否确认撤销商品 <span className="font-mono font-bold text-gray-800">{revokeTicket.productName}</span>？
+                    <br/><span className="text-xs text-red-400 mt-1 block">撤销后商品将无法再核销</span>
+                </p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setRevokeTicket(null)}
+                        className="flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 text-sm hover:bg-gray-200"
+                    >
+                        取消
+                    </button>
+                    <button 
+                        onClick={handleUserRevoke}
+                        className="flex-1 py-3 rounded-xl bg-red-600 font-bold text-white text-sm shadow-lg shadow-red-200 active:scale-95 transition-all"
+                    >
+                        确定
+                    </button>
+                </div>
+           </div>
         </div>
       )}
 

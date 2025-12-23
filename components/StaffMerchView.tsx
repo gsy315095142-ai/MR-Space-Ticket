@@ -126,7 +126,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
       localStorage.setItem('vr_user_merch', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage_update'));
       
-      onShowToast('订单已退款');
+      onShowToast('订单已撤销');
       setRefundTicket(null);
   };
 
@@ -314,7 +314,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                                               {(ticket.quantity || 1) > 1 && <span className="ml-1 text-purple-600 text-xs">x{ticket.quantity}</span>}
                                           </div>
                                           <span className={`text-[9px] px-2 py-0.5 rounded font-bold shrink-0 ${isPending ? 'bg-orange-100 text-orange-600' : isRedeemed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                                              {isPending ? '待核销' : isRedeemed ? '已核销' : '已退款'}
+                                              {isPending ? '待核销' : isRedeemed ? '已核销' : '已撤销'}
                                           </span>
                                       </div>
                                       <div className="text-[10px] text-gray-400 font-mono mb-1">ID: {ticket.id}</div>
@@ -348,13 +348,13 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                                         onClick={() => setRefundTicket(ticket)}
                                         className="flex-1 bg-white border border-gray-200 text-gray-600 py-2 rounded-lg text-xs font-bold hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
                                       >
-                                        <RotateCcw size={14} /> 退款
+                                        <RotateCcw size={14} /> 撤销
                                       </button>
                                   )}
 
                                   {isRefunded && (
                                       <div className="flex-1 bg-gray-50 text-gray-400 border border-gray-100 py-2 rounded-lg text-xs font-bold text-center">
-                                          已退款
+                                          已撤销
                                       </div>
                                   )}
                               </div>
@@ -563,9 +563,9 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                 <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4 border-4 border-red-50/50">
                     <RotateCcw size={32} />
                 </div>
-                <h3 className="font-bold text-lg text-slate-800 mb-2">确认退款</h3>
+                <h3 className="font-bold text-lg text-slate-800 mb-2">确认撤销</h3>
                 <p className="text-sm text-gray-500 mb-6 px-4">
-                    是否确认对订单 <span className="font-mono font-bold text-gray-800">{refundTicket.id}</span> 进行退款操作？
+                    是否确认对订单 <span className="font-mono font-bold text-gray-800">{refundTicket.id}</span> 进行撤销操作？
                     <br/><span className="text-xs text-red-400 mt-1 block">此操作不可撤销</span>
                 </p>
                 <div className="flex gap-3">
@@ -579,7 +579,7 @@ const StaffMerchView: React.FC<StaffMerchViewProps> = ({ onShowToast }) => {
                         onClick={handleRefundConfirm}
                         className="flex-1 py-3 rounded-xl bg-red-600 font-bold text-white text-sm shadow-lg shadow-red-200 active:scale-95 transition-all"
                     >
-                        确认退款
+                        确认撤销
                     </button>
                 </div>
            </div>
